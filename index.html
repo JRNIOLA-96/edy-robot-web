@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Edy - Robot Companion</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Botón inicial para activar permisos de micrófono y audio obligatorios */
+        #start-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        #start-btn {
+            background-color: #00ffff;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 30px;
+            margin-top: 20px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        #status {
+            position: absolute;
+            left: 12px;
+            bottom: 10px;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 12px;
+            letter-spacing: 0;
+            z-index: 20;
+        }
+
+        .face-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(90deg);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .eyes-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 90px;
+            position: relative;
+        }
+
+        .eye {
+            width: 130px;
+            height: 130px;
+            background-color: #00ffff;
+            border-radius: 50%;
+            animation: blink 4s infinite;
+            transition: all 0.3s ease;
+            box-shadow: inset -8px -8px 0px rgba(0, 0, 0, 0.25);
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+        }
+
+        .mouth {
+            width: 35px;
+            height: 15px;
+            border-bottom: 5px solid #00ffff;
+            border-radius: 0 0 15px 15px;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .command-output {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #00ffff;
+            text-align: center;
+            text-shadow: 0 0 18px rgba(0, 255, 255, 0.75);
+            pointer-events: none;
+        }
+
+        .output-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .output-value {
+            font-size: 76px;
+            font-weight: 900;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .output-subtitle {
+            margin-top: 12px;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .face-container.show-output .eyes-row,
+        .face-container.show-output .mouth,
+        .face-container.show-output .floating-elements {
+            display: none;
+        }
+
+        .face-container.show-output .command-output {
+            display: flex;
+        }
+
+        @keyframes blink {
+            0%, 95%, 100% { transform: scaleY(1); }
+            97% { transform: scaleY(0.05); }
+        }
+
+        /* --- EXPRESIONES --- */
+        .expr-normal .eye { width: 130px; height: 130px; border-radius: 50%; background-color: #00ffff; }
+        .expr-normal .mouth { width: 35px; height: 15px; border-bottom: 5px solid #00ffff; border-radius: 0 0 15px 15px; }
+
+        .expr-enojado .eye { width: 140px; height: 110px; border-radius: 70px 70px 30px 30px; background-color: #ff3355; transform: rotate(-8deg); animation: rageShake 0.15s infinite alternate; }
+        .expr-enojado .eye + .eye { transform: rotate(8deg); }
+        .expr-enojado .mouth { width: 30px; height: 12px; border-top: 5px solid #ff3355; border-bottom: none; border-radius: 15px 15px 0 0; }
+        .expr-enojado .fe-enojado { display: block; }
+        @keyframes rageShake { 0% { transform: rotate(-8deg) translateY(0); } 100% { transform: rotate(-8deg) translateY(-3px); } }
+        .fe-enojado span { position: absolute; font-size: 28px; animation: steamFloat 1s infinite linear; opacity: 0; }
+        .fe-enojado span:nth-child(1) { left: 15%; top: 40%; }
+        .fe-enojado span:nth-child(2) { right: 15%; top: 40%; animation-delay: 0.5s; }
+        @keyframes steamFloat { 0% { transform: translateY(10px) scale(0.8); opacity: 1; } 100% { transform: translateY(-25px) scale(1.2); opacity: 0; } }
+
+        .expr-confundido .eye { width: 120px; height: 130px; border-radius: 40% 60% 70% 30% / 50% 40% 60% 50%; background-color: #00ffff; transform: rotate(-15deg); }
+        .expr-confundido .eye + .eye { border-radius: 60% 40% 30% 70% / 40% 60% 50% 60%; transform: rotate(15deg); }
+        .expr-confundido .mouth { width: 25px; height: 10px; border-bottom: 4px solid #00ffff; border-radius: 50%; transform: rotate(10deg); }
+
+        .expr-sueo .eye { width: 130px; height: 75px; border-radius: 65px 65px 10px 10px; background-color: #3399ff; }
+        .expr-sueo .mouth { width: 20px; height: 12px; border-radius: 50%; background-color: #3399ff; border: none; }
+        .expr-sueo .fe-sueo { display: block; }
+        .fe-sueo span { position: absolute; right: 25%; top: 35%; font-weight: bold; color: #3399ff; font-size: 24px; animation: zzzFloat 2s infinite ease-in-out; opacity: 0; }
+        .fe-sueo span:nth-child(1) { animation-delay: 0s; right: 28%; }
+        .fe-sueo span:nth-child(2) { animation-delay: 0.7s; right: 24%; }
+        .fe-sueo span:nth-child(3) { animation-delay: 1.4s; right: 20%; }
+        @keyframes zzzFloat { 0% { transform: translate(0, 0) scale(0.8); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(30px, -40px) scale(1.3); opacity: 0; } }
+
+        .expr-cosquillas .eye { width: 130px; height: 75px; border-radius: 65px 65px 10px 10px; background-color: #00ffff; }
+        .expr-cosquillas .mouth { width: 45px; height: 20px; border-bottom: 6px solid #00ffff; border-radius: 0 0 25px 25px; }
+
+        .expr-beso .eye { width: 125px; height: 125px; background-color: #ff4d94; border-radius: 50% 50% 0 50%; transform: rotate(-45deg) scale(1.1); animation: heartbeat 0.8s infinite alternate; }
+        .expr-beso .eye + .eye { border-radius: 50% 50% 50% 0; transform: rotate(45deg) scale(1.1); animation: heartbeat 0.8s infinite alternate; }
+        .expr-beso .mouth { width: 25px; height: 25px; background: transparent; border-right: 5px solid #ff1a75; border-top: 5px solid #ff1a75; border-bottom: 5px solid #ff1a75; border-radius: 0 50% 50% 0; transform: rotate(-90deg) scale(1.4); }
+        .expr-beso .fe-beso { display: block; }
+        .fe-beso span { position: absolute; font-size: 26px; animation: heartFloat 1.5s infinite ease-in; opacity: 0; }
+        .fe-beso span:nth-child(1) { left: 20%; top: 50%; }
+        .fe-beso span:nth-child(2) { right: 20%; top: 50%; animation-delay: 0.7s; }
+        @keyframes heartFloat { 0% { transform: translateY(0) scale(0.6); opacity: 1; } 100% { transform: translateY(-50px) scale(1.3); opacity: 0; } }
+        @keyframes heartbeat { 0% { transform: scale(1) rotate(var(--r, -45deg)); } 100% { transform: scale(1.15) rotate(var(--r, -45deg)); } }
+
+        .expr-escucha .eye { width: 145px; height: 145px; background-color: #ffcc00; border-radius: 50%; animation: listenPulse 0.6s infinite alternate; }
+        .expr-escucha .mouth { width: 25px; height: 25px; background-color: #ffcc00; border-radius: 50%; border: none; animation: mouthOpen 0.6s infinite alternate; }
+        .expr-escucha .fe-escucha { display: block; }
+        .fe-escucha span { position: absolute; font-size: 24px; animation: micWave 1s infinite linear; opacity: 0; }
+        .fe-escucha span:nth-child(1) { left: 10%; top: 45%; }
+        .fe-escucha span:nth-child(2) { right: 10%; top: 45%; animation-delay: 0.5s; }
+        @keyframes listenPulse { 0% { transform: scale(1); } 100% { transform: scale(1.08); } }
+        @keyframes mouthOpen { 0% { transform: scale(0.8); } 100% { transform: scale(1.3); } }
+        @keyframes micWave { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de inicio obligatoria para desbloquear audio y micrófono -->
+    <div id="start-screen" onclick="iniciarSistema()">
+        <h1>🤖 Robot Edy</h1>
+        <p>Toca el botón para conectar la cara con el ESP32</p>
+        <button id="start-btn">CONECTAR</button>
+    </div>
+
+    <div id="status">Conectando con Edy...</div>
+
+    <div class="face-container expr-normal" id="face" onclick="tocarCara()">
+        <div class="floating-elements fe-enojado"><span>💨</span><span>💨</span></div>
+        <div class="floating-elements fe-sueo"><span>Z</span><span>z</span><span>Z</span></div>
+        <div class="floating-elements fe-beso"><span>❤️</span><span>💖</span></div>
+        <div class="floating-elements fe-escucha"><span>🎙️</span><span>🎙️</span></div>
+
+        <div class="eyes-row">
+            <div class="eye"></div>
+            <div class="eye"></div>
+        </div>
+        <div class="mouth" id="mouth"></div>
+        <div class="command-output" id="command-output">
+            <div class="output-title" id="output-title"></div>
+            <div class="output-value" id="output-value"></div>
+            <div class="output-subtitle" id="output-subtitle"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const statusEl = document.getElementById('status');
+        const face = document.getElementById('face');
+        const outputTitle = document.getElementById('output-title');
+        const outputValue = document.getElementById('output-value');
+        const outputSubtitle = document.getElementById('output-subtitle');
+        const PALABRAS_ACTIVACION = ['edy', 'edi', 'edie', 'heddy'];
+        const MQTT_URL = 'wss://broker.hivemq.com:8884/mqtt';
+        const MQTT_ACTION_TOPIC = 'edy/jordan/robot01/accion';
+        const MQTT_STATUS_TOPIC = 'edy/jordan/robot01/estado';
+        let mqttClient = null;
+        let mqttConectado = false;
+
+        function conectarMqtt() {
+            if (!window.mqtt) {
+                statusEl.textContent = 'No se cargo MQTT. Revisa internet.';
+                return;
+            }
+
+            const clientId = 'edy-web-' + Math.random().toString(16).slice(2);
+            mqttClient = mqtt.connect(MQTT_URL, {
+                clientId,
+                clean: true,
+                reconnectPeriod: 3000,
+                connectTimeout: 8000
+            });
+
+            mqttClient.on('connect', () => {
+                mqttConectado = true;
+                mqttClient.subscribe(MQTT_STATUS_TOPIC);
+                statusEl.textContent = 'MQTT conectado. Edy listo.';
+            });
+
+            mqttClient.on('reconnect', () => {
+                statusEl.textContent = 'Reconectando con Edy...';
+            });
+
+            mqttClient.on('message', (topic, payload) => {
+                if (topic === MQTT_STATUS_TOPIC) {
+                    statusEl.textContent = 'ESP32: ' + payload.toString();
+                }
+            });
+
+            mqttClient.on('error', (error) => {
+                mqttConectado = false;
+                statusEl.textContent = 'Error MQTT';
+                console.log('MQTT error:', error);
+            });
+
+            mqttClient.on('close', () => {
+                mqttConectado = false;
+            });
+        }
+
+        async function enviarAccion(tipo) {
+            if (mqttConectado && mqttClient) {
+                mqttClient.publish(MQTT_ACTION_TOPIC, tipo);
+                statusEl.textContent = 'Enviado a Edy: ' + tipo;
+                return;
+            }
+
+            try {
+                const response = await fetch('/accion?tipo=' + encodeURIComponent(tipo), { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                statusEl.textContent = 'ESP32 sincronizado: ' + tipo;
+            } catch (error) {
+                statusEl.textContent = 'Sin MQTT ni respuesta local del ESP32';
+                console.log('Error enviando accion:', error);
+            }
+        }
+
+        async function consultarEstado() {
+            try {
+                const response = await fetch('/estado', { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const estado = await response.json();
+                statusEl.textContent = 'Edy en ' + estado.modo + ' | IP ' + estado.ip;
+            } catch (error) {
+                statusEl.textContent = 'Abre esta pagina desde la IP del ESP32';
+            }
+        }
+
+        function playSound(tipo) {
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            let now = audioCtx.currentTime;
+
+            if (tipo === 'mov_enojado') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, now); osc.frequency.setValueAtTime(80, now + 0.4);
+                gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.4);
+            } else if (tipo === 'mov_confundido') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.15);
+                gainNode.gain.setValueAtTime(0.15, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+            } else if (tipo === 'mov_sueo') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(70, now + 0.8);
+                gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.8);
+            } else if (tipo === 'mov_cosquillas') {
+                osc.type = 'square';
+                for(let i=0; i<4; i++) { osc.frequency.setValueAtTime(500 + (i*150), now + (i * 0.08)); }
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.35);
+            } else if (tipo === 'mov_beso') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(700, now); osc.frequency.setValueAtTime(1100, now + 0.1);
+                gainNode.gain.setValueAtTime(0.15, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+                return;
+            } else if (tipo === 'mov_escucha') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+                return;
+            } else {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(440, now);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.1);
+            }
+            osc.start(now); osc.stop(now + 0.3);
+        }
+
+        const listaExpr = [
+            { nombre: 'normal', mov: 'mov_normal' },
+            { nombre: 'enojado', mov: 'mov_enojado' },
+            { nombre: 'confundido', mov: 'mov_confundido' },
+            { nombre: 'sueo', mov: 'mov_sueo' },
+            { nombre: 'cosquillas', mov: 'mov_cosquillas' },
+            { nombre: 'beso', mov: 'mov_beso' }
+        ];
+
+        let temporizadorRandom = null;
+        let escuchandoVoz = false;
+        let esperandoComando = false;
+        let temporizadorComando = null;
+        let recognition = null;
+
+        function activarPantallaCompleta() {
+            if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => {}); }
+        }
+
+        function cambiarAleatorio() {
+            if (escuchandoVoz) return;
+            activarPantallaCompleta();
+            let randomIndex = Math.floor(Math.random() * listaExpr.length);
+            let actual = listaExpr[randomIndex];
+
+            face.classList.remove('show-output');
+            face.className = "face-container expr-" + actual.nombre;
+            playSound(actual.mov);
+            enviarAccion(actual.mov);
+
+            let tiempoAleatorio = Math.floor(Math.random() * (15000 - 3000 + 1)) + 3000;
+            clearTimeout(temporizadorRandom);
+            temporizadorRandom = setTimeout(cambiarAleatorio, tiempoAleatorio);
+        }
+
+        function tocarCara() {
+            clearTimeout(temporizadorRandom);
+            cambiarAleatorio();
+        }
+
+        function iniciarReconocimientoVoz() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Tu navegador no soporta reconocimiento de voz. Usa Google Chrome.");
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = true;
+            recognition.interimResults = false;
+
+            recognition.onresult = function(event) {
+                const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                console.log("Escuchado: " + speechResult);
+                procesarVoz(speechResult);
+            };
+
+            recognition.onerror = function(event) {
+                setTimeout(() => { recognition.start(); }, 1000);
+            };
+
+            recognition.onend = function() {
+                try { recognition.start(); } catch(e) {}
+            };
+
+            recognition.start();
+        }
+
+        async function pedirPermisoMicrofono() {
+            if (!window.isSecureContext) {
+                statusEl.textContent = 'El microfono requiere HTTPS. Usa Netlify o GitHub Pages.';
+                return false;
+            }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                statusEl.textContent = 'Este navegador no expone el microfono.';
+                return false;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                statusEl.textContent = 'Microfono permitido.';
+                return true;
+            } catch (error) {
+                statusEl.textContent = 'Permiso de microfono rechazado o bloqueado.';
+                console.log('Microfono error:', error);
+                return false;
+            }
+        }
+
+        function contieneActivacion(texto) {
+            return PALABRAS_ACTIVACION.some(palabra => texto.includes(palabra));
+        }
+
+        function quitarActivacion(texto) {
+            let limpio = texto;
+            PALABRAS_ACTIVACION.forEach(palabra => {
+                limpio = limpio.split(palabra).join('');
+            });
+            return limpio.replace(/[.,;:!?¿¡]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function procesarVoz(texto) {
+            if (esperandoComando) {
+                ejecutarComandoVoz(quitarActivacion(texto) || texto);
+                return;
+            }
+
+            if (contieneActivacion(texto)) {
+                const comandoEnMismaFrase = quitarActivacion(texto);
+                activarModoEscucha();
+
+                if (comandoEnMismaFrase.length > 2) {
+                    setTimeout(() => ejecutarComandoVoz(comandoEnMismaFrase), 450);
+                }
+            }
+        }
+
+        function activarModoEscucha() {
+            activarPantallaCompleta();
+            clearTimeout(temporizadorRandom);
+            clearTimeout(temporizadorComando);
+            escuchandoVoz = true;
+            esperandoComando = true;
+
+            face.className = "face-container expr-escucha";
+            playSound('mov_escucha');
+            enviarAccion('mov_escucha');
+            statusEl.textContent = 'Te escucho... di un comando';
+
+            temporizadorComando = setTimeout(() => {
+                escuchandoVoz = false;
+                esperandoComando = false;
+                cambiarAleatorio();
+            }, 6000);
+        }
+
+        function ejecutarComandoVoz(comando) {
+            const texto = comando.toLowerCase().trim();
+            console.log("Comando: " + texto);
+            clearTimeout(temporizadorComando);
+            esperandoComando = false;
+
+            if (texto.includes('hora') || texto.includes('qué hora') || texto.includes('que hora')) {
+                mostrarHora();
+                return;
+            }
+
+            mostrarMensajeTemporal('No entendi', 'Intenta: que hora es', 2500);
+        }
+
+        function mostrarHora() {
+            const ahora = new Date();
+            const hora = ahora.toLocaleTimeString('es-EC', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const fecha = ahora.toLocaleDateString('es-EC', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+
+            mostrarMensajeTemporal('La hora es', hora, 5000, fecha);
+        }
+
+        function mostrarMensajeTemporal(titulo, valor, duracion, subtitulo = '') {
+            clearTimeout(temporizadorRandom);
+            clearTimeout(temporizadorComando);
+            escuchandoVoz = true;
+            esperandoComando = false;
+
+            face.className = "face-container expr-normal show-output";
+            outputTitle.textContent = titulo;
+            outputValue.textContent = valor;
+            outputSubtitle.textContent = subtitulo;
+            statusEl.textContent = titulo + ': ' + valor;
+
+            setTimeout(() => {
+                face.classList.remove('show-output');
+                escuchandoVoz = false;
+                cambiarAleatorio();
+            }, duracion);
+        }
+
+        // Función que se ejecuta al presionar el botón de inicio (Desbloquea permisos)
+        async function iniciarSistema() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            document.getElementById('start-screen').style.display = 'none';
+            activarPantallaCompleta();
+            conectarMqtt();
+            const microfonoOk = await pedirPermisoMicrofono();
+            
+            // Iniciar flujos
+            cambiarAleatorio();
+            if (microfonoOk) {
+                iniciarReconocimientoVoz();
+            }
+        }
+    </script>
+</body>
+</html>
+
