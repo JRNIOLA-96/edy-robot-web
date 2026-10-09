@@ -194,43 +194,29 @@
         @keyframes heartFloat { 0% { transform: translateY(0) scale(0.6); opacity: 1; } 100% { transform: translateY(-50px) scale(1.3); opacity: 0; } }
         @keyframes heartbeat { 0% { transform: scale(1) rotate(var(--r, -45deg)); } 100% { transform: scale(1.15) rotate(var(--r, -45deg)); } }
 
-        .expr-escucha .eyes-row { gap: 70px; animation: curiousTilt 1.6s infinite ease-in-out; }
+        .expr-escucha .eyes-row { gap: 90px; }
         .expr-escucha .eye {
-            position: relative;
-            width: 150px;
-            height: 120px;
-            border-radius: 55% 55% 45% 45%;
-            background:
-                radial-gradient(circle at 50% 50%, #ffffff 0 12px, #fffb99 13px 28px, #ffcc00 29px 58px, #d88900 59px 100%);
-            animation: listenFocus 0.9s infinite alternate;
-            box-shadow: 0 0 28px rgba(255, 204, 0, 0.65), inset -8px -8px 0 rgba(0, 0, 0, 0.22);
-        }
-        .expr-escucha .eye::before {
-            content: "";
-            position: absolute;
-            inset: -14px;
-            border: 4px solid rgba(255, 224, 80, 0.75);
-            border-left-color: transparent;
-            border-right-color: transparent;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
-            animation: scanRing 1.2s infinite linear;
+            background-color: #00ffff;
+            animation: listenCalm 1s infinite alternate;
+            box-shadow: 0 0 22px rgba(0, 255, 255, 0.55), inset -8px -8px 0 rgba(0, 0, 0, 0.25);
         }
-        .expr-escucha .eye + .eye { transform: scale(0.92) rotate(7deg); }
         .expr-escucha .mouth {
-            width: 32px;
-            height: 32px;
+            width: 35px;
+            height: 15px;
             background: transparent;
-            border: 6px solid #ffcc00;
-            border-radius: 50%;
-            animation: mouthListen 0.7s infinite alternate;
-            box-shadow: 0 0 16px rgba(255, 204, 0, 0.55);
+            border-bottom: 5px solid #00ffff;
+            border-radius: 0 0 15px 15px;
+            animation: none;
         }
-        .expr-escucha .fe-escucha { display: block; }
+        .expr-escucha .fe-escucha { display: none; }
         .fe-escucha span {
             position: absolute;
             width: 76px;
             height: 76px;
-            border: 5px solid rgba(255, 204, 0, 0.9);
+            border: 5px solid rgba(0, 255, 255, 0.75);
             border-top-color: transparent;
             border-bottom-color: transparent;
             border-radius: 50%;
@@ -240,10 +226,7 @@
         }
         .fe-escucha span:nth-child(1) { left: 8%; top: 43%; }
         .fe-escucha span:nth-child(2) { right: 8%; top: 43%; animation-delay: 0.45s; }
-        @keyframes curiousTilt { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
-        @keyframes listenFocus { 0% { transform: translateY(0) scale(0.96); } 100% { transform: translateY(-4px) scale(1.04); } }
-        @keyframes scanRing { 0% { transform: rotate(0deg) scale(0.95); } 100% { transform: rotate(360deg) scale(1.05); } }
-        @keyframes mouthListen { 0% { transform: scale(0.82); } 100% { transform: scale(1.12); } }
+        @keyframes listenCalm { 0% { transform: scale(1); } 100% { transform: scale(1.04); } }
         @keyframes listenWave { 0% { transform: scale(0.45); opacity: 0.95; } 100% { transform: scale(1.55); opacity: 0; } }
     </style>
 </head>
@@ -416,6 +399,7 @@
         let escuchandoVoz = false;
         let esperandoComando = false;
         let temporizadorComando = null;
+        let modoActivo = 'idle';
         let recognition = null;
 
         function activarPantallaCompleta() {
@@ -423,7 +407,7 @@
         }
 
         function cambiarAleatorio() {
-            if (escuchandoVoz) return;
+            if (modoActivo !== 'idle') return;
             activarPantallaCompleta();
             let randomIndex = Math.floor(Math.random() * listaExpr.length);
             let actual = listaExpr[randomIndex];
@@ -439,6 +423,7 @@
         }
 
         function tocarCara() {
+            if (modoActivo !== 'idle') return;
             clearTimeout(temporizadorRandom);
             cambiarAleatorio();
         }
@@ -459,6 +444,9 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const speechResult = event.results[i][0].transcript;
                     statusEl.textContent = 'Escuche: ' + speechResult;
+                    if (!event.results[i].isFinal && modoActivo === 'idle' && contieneActivacion(speechResult)) {
+                        activarModoEscucha();
+                    }
                     if (event.results[i].isFinal) {
                         console.log("Escuchado: " + speechResult);
                         procesarVoz(speechResult);
@@ -537,7 +525,7 @@
                 return;
             }
 
-            if (contieneActivacion(textoNormalizado)) {
+            if (modoActivo === 'idle' && contieneActivacion(textoNormalizado)) {
                 const comandoEnMismaFrase = quitarActivacion(texto);
                 activarModoEscucha();
 
@@ -553,6 +541,7 @@
             clearTimeout(temporizadorComando);
             escuchandoVoz = true;
             esperandoComando = true;
+            modoActivo = 'escucha';
 
             face.className = "face-container expr-escucha";
             playSound('mov_escucha');
@@ -565,6 +554,7 @@
             temporizadorComando = setTimeout(() => {
                 escuchandoVoz = false;
                 esperandoComando = false;
+                modoActivo = 'idle';
                 cambiarAleatorio();
             }, 6000);
         }
@@ -574,6 +564,7 @@
             console.log("Comando: " + texto);
             clearTimeout(temporizadorComando);
             esperandoComando = false;
+            modoActivo = 'respuesta';
 
             if (texto.includes('hora')) {
                 mostrarHora();
@@ -603,6 +594,7 @@
             clearTimeout(temporizadorComando);
             escuchandoVoz = true;
             esperandoComando = false;
+            modoActivo = 'respuesta';
 
             face.className = "face-container expr-normal show-output";
             outputTitle.textContent = titulo;
@@ -613,6 +605,7 @@
             setTimeout(() => {
                 face.classList.remove('show-output');
                 escuchandoVoz = false;
+                modoActivo = 'idle';
                 cambiarAleatorio();
             }, duracion);
         }
@@ -628,6 +621,7 @@
             const microfonoOk = await pedirPermisoMicrofono();
             
             // Iniciar flujos
+            modoActivo = 'idle';
             cambiarAleatorio();
             if (microfonoOk) {
                 iniciarReconocimientoVoz();
