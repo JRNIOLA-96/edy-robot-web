@@ -194,15 +194,57 @@
         @keyframes heartFloat { 0% { transform: translateY(0) scale(0.6); opacity: 1; } 100% { transform: translateY(-50px) scale(1.3); opacity: 0; } }
         @keyframes heartbeat { 0% { transform: scale(1) rotate(var(--r, -45deg)); } 100% { transform: scale(1.15) rotate(var(--r, -45deg)); } }
 
-        .expr-escucha .eye { width: 145px; height: 145px; background-color: #ffcc00; border-radius: 50%; animation: listenPulse 0.6s infinite alternate; }
-        .expr-escucha .mouth { width: 25px; height: 25px; background-color: #ffcc00; border-radius: 50%; border: none; animation: mouthOpen 0.6s infinite alternate; }
+        .expr-escucha .eyes-row { gap: 70px; animation: curiousTilt 1.6s infinite ease-in-out; }
+        .expr-escucha .eye {
+            position: relative;
+            width: 150px;
+            height: 120px;
+            border-radius: 55% 55% 45% 45%;
+            background:
+                radial-gradient(circle at 50% 50%, #ffffff 0 12px, #fffb99 13px 28px, #ffcc00 29px 58px, #d88900 59px 100%);
+            animation: listenFocus 0.9s infinite alternate;
+            box-shadow: 0 0 28px rgba(255, 204, 0, 0.65), inset -8px -8px 0 rgba(0, 0, 0, 0.22);
+        }
+        .expr-escucha .eye::before {
+            content: "";
+            position: absolute;
+            inset: -14px;
+            border: 4px solid rgba(255, 224, 80, 0.75);
+            border-left-color: transparent;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: scanRing 1.2s infinite linear;
+        }
+        .expr-escucha .eye + .eye { transform: scale(0.92) rotate(7deg); }
+        .expr-escucha .mouth {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: 6px solid #ffcc00;
+            border-radius: 50%;
+            animation: mouthListen 0.7s infinite alternate;
+            box-shadow: 0 0 16px rgba(255, 204, 0, 0.55);
+        }
         .expr-escucha .fe-escucha { display: block; }
-        .fe-escucha span { position: absolute; font-size: 24px; animation: micWave 1s infinite linear; opacity: 0; }
-        .fe-escucha span:nth-child(1) { left: 10%; top: 45%; }
-        .fe-escucha span:nth-child(2) { right: 10%; top: 45%; animation-delay: 0.5s; }
-        @keyframes listenPulse { 0% { transform: scale(1); } 100% { transform: scale(1.08); } }
-        @keyframes mouthOpen { 0% { transform: scale(0.8); } 100% { transform: scale(1.3); } }
-        @keyframes micWave { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+        .fe-escucha span {
+            position: absolute;
+            width: 76px;
+            height: 76px;
+            border: 5px solid rgba(255, 204, 0, 0.9);
+            border-top-color: transparent;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            color: transparent;
+            animation: listenWave 1.1s infinite ease-out;
+            opacity: 0;
+        }
+        .fe-escucha span:nth-child(1) { left: 8%; top: 43%; }
+        .fe-escucha span:nth-child(2) { right: 8%; top: 43%; animation-delay: 0.45s; }
+        @keyframes curiousTilt { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+        @keyframes listenFocus { 0% { transform: translateY(0) scale(0.96); } 100% { transform: translateY(-4px) scale(1.04); } }
+        @keyframes scanRing { 0% { transform: rotate(0deg) scale(0.95); } 100% { transform: rotate(360deg) scale(1.05); } }
+        @keyframes mouthListen { 0% { transform: scale(0.82); } 100% { transform: scale(1.12); } }
+        @keyframes listenWave { 0% { transform: scale(0.45); opacity: 0.95; } 100% { transform: scale(1.55); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -242,7 +284,7 @@
         const outputTitle = document.getElementById('output-title');
         const outputValue = document.getElementById('output-value');
         const outputSubtitle = document.getElementById('output-subtitle');
-        const PALABRAS_ACTIVACION = ['edy', 'edi', 'edie', 'heddy'];
+        const PALABRAS_ACTIVACION = ['edy', 'edi', 'edie', 'eddy', 'heddy', 'hey edy'];
         const MQTT_URL = 'wss://broker.hivemq.com:8884/mqtt';
         const MQTT_ACTION_TOPIC = 'edy/jordan/robot01/accion';
         const MQTT_STATUS_TOPIC = 'edy/jordan/robot01/estado';
@@ -346,12 +388,13 @@
                 return;
             } else if (tipo === 'mov_escucha') {
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, now);
-                osc.frequency.setValueAtTime(659.25, now + 0.1);
-                osc.frequency.setValueAtTime(783.99, now + 0.2);
-                gainNode.gain.setValueAtTime(0.15, now);
-                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.4);
-                osc.start(now); osc.stop(now + 0.4);
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(660, now + 0.08);
+                osc.frequency.setValueAtTime(880, now + 0.18);
+                osc.frequency.setValueAtTime(660, now + 0.32);
+                gainNode.gain.setValueAtTime(0.16, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
                 return;
             } else {
                 osc.type = 'sine'; osc.frequency.setValueAtTime(440, now);
@@ -410,15 +453,21 @@
             recognition = new SpeechRecognition();
             recognition.lang = 'es-ES';
             recognition.continuous = true;
-            recognition.interimResults = false;
+            recognition.interimResults = true;
 
             recognition.onresult = function(event) {
-                const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase();
-                console.log("Escuchado: " + speechResult);
-                procesarVoz(speechResult);
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const speechResult = event.results[i][0].transcript;
+                    statusEl.textContent = 'Escuche: ' + speechResult;
+                    if (event.results[i].isFinal) {
+                        console.log("Escuchado: " + speechResult);
+                        procesarVoz(speechResult);
+                    }
+                }
             };
 
             recognition.onerror = function(event) {
+                console.log('Reconocimiento error:', event.error);
                 setTimeout(() => { recognition.start(); }, 1000);
             };
 
@@ -452,25 +501,43 @@
             }
         }
 
+        function normalizarTexto(texto) {
+            return texto
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[.,;:!?¿¡]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
         function contieneActivacion(texto) {
-            return PALABRAS_ACTIVACION.some(palabra => texto.includes(palabra));
+            const limpio = normalizarTexto(texto);
+            return PALABRAS_ACTIVACION.some(palabra => limpio.includes(palabra));
         }
 
         function quitarActivacion(texto) {
-            let limpio = texto;
+            let limpio = normalizarTexto(texto);
             PALABRAS_ACTIVACION.forEach(palabra => {
                 limpio = limpio.split(palabra).join('');
             });
-            return limpio.replace(/[.,;:!?¿¡]/g, ' ').replace(/\s+/g, ' ').trim();
+            return limpio.replace(/\s+/g, ' ').trim();
         }
 
         function procesarVoz(texto) {
+            const textoNormalizado = normalizarTexto(texto);
+
             if (esperandoComando) {
-                ejecutarComandoVoz(quitarActivacion(texto) || texto);
+                const comandoLimpio = quitarActivacion(texto);
+                if (!comandoLimpio) {
+                    statusEl.textContent = 'Te escucho... ahora dime el comando';
+                    return;
+                }
+                ejecutarComandoVoz(comandoLimpio);
                 return;
             }
 
-            if (contieneActivacion(texto)) {
+            if (contieneActivacion(textoNormalizado)) {
                 const comandoEnMismaFrase = quitarActivacion(texto);
                 activarModoEscucha();
 
@@ -490,6 +557,9 @@
             face.className = "face-container expr-escucha";
             playSound('mov_escucha');
             enviarAccion('mov_escucha');
+            outputTitle.textContent = '';
+            outputValue.textContent = '';
+            outputSubtitle.textContent = '';
             statusEl.textContent = 'Te escucho... di un comando';
 
             temporizadorComando = setTimeout(() => {
@@ -500,12 +570,12 @@
         }
 
         function ejecutarComandoVoz(comando) {
-            const texto = comando.toLowerCase().trim();
+            const texto = normalizarTexto(comando);
             console.log("Comando: " + texto);
             clearTimeout(temporizadorComando);
             esperandoComando = false;
 
-            if (texto.includes('hora') || texto.includes('qué hora') || texto.includes('que hora')) {
+            if (texto.includes('hora')) {
                 mostrarHora();
                 return;
             }
