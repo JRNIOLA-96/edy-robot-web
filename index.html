@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - Smart Face & Clock</title>
+    <title>Edy - iOS Clock & Face</title>
     <style>
         body, html {
             margin: 0;
@@ -92,13 +92,13 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ DIGITAL ESTILO iOS CON GAMA DE COLORES ARMÃ“NICOS --- */
+        /* --- RELOJ DIGITAL GIGANTE ESTILO iOS (MÃXIMO TAMAÃ‘O E INCLINACIÃ“N) --- */
         #clock-container {
             position: absolute;
-            display: none; /* Oculto por defecto hasta que pase 1 minuto */
+            display: none;
             justify-content: center;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
             width: 100vh;
             height: 100vw;
             transform: rotate(90deg);
@@ -107,36 +107,38 @@
         }
 
         .clock-digit {
-            font-size: 150px;
+            font-size: 210px; /* TamaÃ±o masivo para ocupar toda la pantalla */
             font-weight: 900;
             line-height: 1;
-            font-family: system-ui, -apple-system, sans-serif;
-            letter-spacing: -2px;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            font-style: italic; /* Estilo inclinado clÃ¡sico de iOS */
+            letter-spacing: -6px;
         }
 
-        /* Tonos armÃ³nicos cercanos y elegantes inspirados en la referencia */
-        #digit-h { color: #ff66b2; } /* Rosa vibrante */
+        /* Paleta de colores armÃ³nicos exacta de la referencia (tonos rosas, lilas y morados brillantes) */
+        #digit-h  { color: #ff66b2; } /* Rosa vibrante */
         #digit-m1 { color: #b886ff; } /* Lila suave */
-        #digit-m2 { color: #d946ef; } /* Morado magenta luminoso */
+        #digit-m2 { color: #d946ef; } /* Morado brillante */
 
         .clock-dots {
             display: flex;
             flex-direction: column;
-            gap: 22px;
+            gap: 30px;
             justify-content: center;
+            align-items: center;
         }
 
         .dot {
-            width: 18px;
-            height: 18px;
-            background-color: rgba(255, 255, 255, 0.4);
+            width: 20px;
+            height: 20px;
+            background-color: rgba(200, 200, 200, 0.45);
             border-radius: 50%;
             animation: pulseDot 2s infinite ease-in-out;
         }
 
         @keyframes pulseDot {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.8; }
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.75; }
         }
     </style>
 </head>
@@ -158,7 +160,7 @@
         </div>
     </div>
 
-    <!-- Pantalla de Reloj Digital (Aparece al minuto de inactividad) -->
+    <!-- Pantalla de Reloj Gigante Estilo iOS -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="clock-digit" id="digit-h">9</div>
         <div class="clock-dots">
@@ -190,6 +192,16 @@
         let temporizadorEsquina = null;
         let modoCuriosoActivo = false;
         let modoRelojActivo = false;
+        let wakeLock = null;
+
+        // FunciÃ³n para evitar que la pantalla del telÃ©fono se apague
+        async function solicitarWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                } catch (err) {}
+            }
+        }
 
         function conectarMqtt() {
             if (!window.mqtt) return;
@@ -197,7 +209,7 @@
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
             mqttClient.on('connect', () => { 
                 mqttConectado = true; 
-                statusEl.textContent = 'Edy activo (Normal)'; 
+                statusEl.textContent = 'Edy activo (Pantalla protegida)'; 
             });
         }
 
@@ -226,7 +238,7 @@
         function iniciarModoCurioso() {
             if (modoRelojActivo) return;
             modoCuriosoActivo = true;
-            statusEl.textContent = 'Edy curioso (Inactivo)...';
+            statusEl.textContent = 'Edy curioso...';
             bucleCurioso();
         }
 
@@ -242,18 +254,15 @@
             temporizadorEsquina = setTimeout(bucleCurioso, tiempoEstancia);
         }
 
-        // --- ACTIVAR RELOJ DIGITAL AL MINUTO DE INACTIVIDAD ---
         function iniciarModoReloj() {
             modoCuriosoActivo = false;
             clearTimeout(temporizadorEsquina);
             modoRelojActivo = true;
 
-            // Ocultar ojos y mostrar reloj
             faceContainer.style.display = 'none';
             clockContainer.style.display = 'flex';
-            statusEl.textContent = 'Modo Reloj Digital';
+            statusEl.textContent = 'Modo Reloj iOS';
 
-            // Ordenar al ESP32 que ponga la cabeza fija en el centro y bloquee movimiento
             enviarAccion('centro_bloqueado');
             actualizarHoraReloj();
         }
@@ -264,7 +273,6 @@
             let horas = ahora.getHours();
             let minutos = ahora.getMinutes();
 
-            // Formato 12 horas o 24 horas (aquÃ­ usamos 12h estÃ©tico tipo iOS)
             horas = horas % 12 || 12;
             let minStr = minutos < 10 ? '0' + minutos : '' + minutos;
 
@@ -275,11 +283,10 @@
             setTimeout(actualizarHoraReloj, 1000);
         }
 
-        // --- INTERACCIÃ“N TÃCTIL ---
         function registrarInteraccion() {
             activarPantallaCompleta();
+            solicitarWakeLock(); // Renovar el bloqueo de pantalla al tacto
 
-            // Si estaba en modo curioso o en modo reloj, restaurar pantalla normal
             if (modoCuriosoActivo || modoRelojActivo) {
                 modoCuriosoActivo = false;
                 modoRelojActivo = false;
@@ -289,30 +296,36 @@
                 faceContainer.style.display = 'flex';
                 eyesRow.style.transform = 'translate(0px, 0px)';
                 
-                enviarAccion('centro_bloqueado'); // Mantiene cabeza firme al centro para no tambalear el telÃ©fono
+                enviarAccion('centro_bloqueado');
                 statusEl.textContent = 'InteracciÃ³n detectada';
             }
 
-            // Reiniciar ambos temporizadores de inactividad
             clearTimeout(timerInactividad30s);
             clearTimeout(timerReloj1min);
 
-            timerInactividad30s = setTimeout(iniciarModoCurioso, 30000); // 30 segundos -> Curioso
-            timerReloj1min = setTimeout(iniciarModoReloj, 60000);       // 60 segundos -> Reloj digital
+            timerInactividad30s = setTimeout(iniciarModoCurioso, 30000);
+            timerReloj1min = setTimeout(iniciarModoReloj, 60000);
         }
 
         function iniciarSistema() {
             document.getElementById('start-screen').style.display = 'none';
             activarPantallaCompleta();
+            solicitarWakeLock(); // Activar el mantenimiento de pantalla encendida
             conectarMqtt();
 
             eyesRow.style.transform = 'translate(0px, 0px)';
             enviarAccion('centro');
 
-            // Arrancar temporizadores
             timerInactividad30s = setTimeout(iniciarModoCurioso, 30000);
             timerReloj1min = setTimeout(iniciarModoReloj, 60000);
         }
+
+        // Si el usuario cambia de pestaÃ±a y regresa, reactivar el Wake Lock automÃ¡ticamente
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') {
+                solicitarWakeLock();
+            }
+        });
     </script>
 </body>
 </html>
