@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - LOOI Control de Servos</title>
+    <title>Edy - LOOI Robot Companion</title>
     <style>
         body, html {
             margin: 0;
@@ -52,7 +52,7 @@
             position: absolute;
             left: 14px;
             bottom: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.3);
             font-size: 11px;
             z-index: 20;
         }
@@ -60,10 +60,8 @@
         /* Pantalla horizontal forzada a 90 grados */
         .face-container {
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 20px;
             width: 100vh;
             height: 100vw;
             transform: rotate(90deg);
@@ -77,7 +75,7 @@
             gap: 110px;
         }
 
-        /* Ojos grandes, limpios y con brillo OLED */
+        /* Ojos grandes, limpios y con brillo OLED estilo LOOI */
         .eye {
             width: 165px;
             height: 165px;
@@ -92,33 +90,6 @@
         @keyframes blink {
             0%, 90%, 100% { transform: scaleY(1); }
             93% { transform: scaleY(0.06); }
-        }
-
-        /* Contenedor de botones de prueba de servos */
-        .servo-controls {
-            display: flex;
-            gap: 15px;
-            z-index: 30;
-        }
-
-        .servo-btn {
-            background-color: rgba(0, 243, 255, 0.15);
-            color: #00f3ff;
-            border: 2px solid #00f3ff;
-            padding: 10px 18px;
-            font-size: 13px;
-            font-weight: bold;
-            border-radius: 20px;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-            transition: all 0.2s ease;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
-        }
-
-        .servo-btn:active {
-            background-color: #00f3ff;
-            color: #000;
-            transform: scale(0.95);
         }
     </style>
 </head>
@@ -137,13 +108,6 @@
             <div class="eye"></div>
             <div class="eye"></div>
         </div>
-
-        <!-- Botones en pantalla para probar los 3 servos (+60Â° y regreso) -->
-        <div class="servo-controls">
-            <button class="servo-btn" onclick="enviarAccion('servo_izq')">Brazo Izq (13)</button>
-            <button class="servo-btn" onclick="enviarAccion('servo_cabeza')">Cabeza (14)</button>
-            <button class="servo-btn" onclick="enviarAccion('servo_der')">Brazo Der (12)</button>
-        </div>
     </div>
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -158,31 +122,38 @@
             if (!window.mqtt) return;
             const clientId = 'edy-web-' + Math.random().toString(16).slice(2);
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
-            mqttClient.on('connect', () => { mqttConectado = true; statusEl.textContent = 'Edy conectado (Modo botones)'; });
+            mqttClient.on('connect', () => { 
+                mqttConectado = true; 
+                statusEl.textContent = 'Edy en lÃ­nea (Modo autÃ³nomo)'; 
+            });
         }
 
         async function enviarAccion(tipo) {
-            statusEl.textContent = 'Enviando: ' + tipo;
             if (mqttConectado && mqttClient) { 
                 mqttClient.publish(MQTT_ACTION_TOPIC, tipo); 
                 return; 
             }
             try { 
-                let res = await fetch('/accion?tipo=' + encodeURIComponent(tipo), { cache: 'no-store' }); 
-                if(res.ok) statusEl.textContent = 'AcciÃ³n ejecutada: ' + tipo;
-            } catch (e) {
-                statusEl.textContent = 'Error al enviar acciÃ³n';
-            }
+                await fetch('/accion?tipo=' + encodeURIComponent(tipo), { cache: 'no-store' }); 
+            } catch (e) {}
         }
 
         function activarPantallaCompleta() {
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
+        // Bucle autÃ³nomo casual: envÃ­a la seÃ±al de movimiento relajado cada cierto tiempo aleatorio
+        function bucleCasual() {
+            enviarAccion('casual');
+            let tiempoAleatorio = Math.floor(Math.random() * (10000 - 4000 + 1)) + 4000;
+            setTimeout(bucleCasual, tiempoAleatorio);
+        }
+
         function iniciarSistema() {
             document.getElementById('start-screen').style.display = 'none';
             activarPantallaCompleta();
             conectarMqtt();
+            bucleCasual(); // Empieza el ciclo de movimientos casuales
         }
     </script>
 </body>
