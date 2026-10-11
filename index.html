@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - LOOI Normal Face</title>
+    <title>Edy - LOOI Control de Servos</title>
     <style>
         body, html {
             margin: 0;
@@ -60,8 +60,10 @@
         /* Pantalla horizontal forzada a 90 grados */
         .face-container {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
+            gap: 20px;
             width: 100vh;
             height: 100vw;
             transform: rotate(90deg);
@@ -91,6 +93,33 @@
             0%, 90%, 100% { transform: scaleY(1); }
             93% { transform: scaleY(0.06); }
         }
+
+        /* Contenedor de botones de prueba de servos */
+        .servo-controls {
+            display: flex;
+            gap: 15px;
+            z-index: 30;
+        }
+
+        .servo-btn {
+            background-color: rgba(0, 243, 255, 0.15);
+            color: #00f3ff;
+            border: 2px solid #00f3ff;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+
+        .servo-btn:active {
+            background-color: #00f3ff;
+            color: #000;
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -108,6 +137,13 @@
             <div class="eye"></div>
             <div class="eye"></div>
         </div>
+
+        <!-- Botones en pantalla para probar los 3 servos (+60Â° y regreso) -->
+        <div class="servo-controls">
+            <button class="servo-btn" onclick="enviarAccion('servo_izq')">Brazo Izq (13)</button>
+            <button class="servo-btn" onclick="enviarAccion('servo_cabeza')">Cabeza (14)</button>
+            <button class="servo-btn" onclick="enviarAccion('servo_der')">Brazo Der (12)</button>
+        </div>
     </div>
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -122,29 +158,31 @@
             if (!window.mqtt) return;
             const clientId = 'edy-web-' + Math.random().toString(16).slice(2);
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
-            mqttClient.on('connect', () => { mqttConectado = true; statusEl.textContent = 'Edy conectado (Modo casual)'; });
+            mqttClient.on('connect', () => { mqttConectado = true; statusEl.textContent = 'Edy conectado (Modo botones)'; });
         }
 
         async function enviarAccion(tipo) {
-            if (mqttConectado && mqttClient) { mqttClient.publish(MQTT_ACTION_TOPIC, tipo); return; }
-            try { await fetch('/accion?tipo=' + encodeURIComponent(tipo), { cache: 'no-store' }); } catch (e) {}
+            statusEl.textContent = 'Enviando: ' + tipo;
+            if (mqttConectado && mqttClient) { 
+                mqttClient.publish(MQTT_ACTION_TOPIC, tipo); 
+                return; 
+            }
+            try { 
+                let res = await fetch('/accion?tipo=' + encodeURIComponent(tipo), { cache: 'no-store' }); 
+                if(res.ok) statusEl.textContent = 'AcciÃ³n ejecutada: ' + tipo;
+            } catch (e) {
+                statusEl.textContent = 'Error al enviar acciÃ³n';
+            }
         }
 
         function activarPantallaCompleta() {
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
-        function bucleCasual() {
-            enviarAccion('casual');
-            let tiempoAleatorio = Math.floor(Math.random() * (12000 - 5000 + 1)) + 5000;
-            setTimeout(bucleCasual, tiempoAleatorio);
-        }
-
         function iniciarSistema() {
             document.getElementById('start-screen').style.display = 'none';
             activarPantallaCompleta();
             conectarMqtt();
-            bucleCasual();
         }
     </script>
 </body>
