@@ -72,13 +72,13 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 70px;
+            gap: 110px; /* <--- Ojos mÃ¡s separados como pediste */
         }
 
-        /* Ojos idÃ©nticos a la referencia de LOOI: grandes, limpios, con profundidad y brillo OLED */
+        /* Ojos grandes, limpios y con brillo OLED */
         .eye {
-            width: 170px;
-            height: 170px;
+            width: 165px;
+            height: 165px;
             background: #d1f7ff;
             border-radius: 50%;
             animation: blink 4.5s infinite ease-in-out;
@@ -134,10 +134,10 @@
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
-        // Bucle aleatorio casual cada 6 a 14 segundos para cambiar la posiciÃ³n fÃ­sica relajada
+        // Bucle aleatorio casual para mover los servos y cambiar de posiciÃ³n de forma relajada
         function bucleCasual() {
             enviarAccion('casual');
-            let tiempoAleatorio = Math.floor(Math.random() * (14000 - 6000 + 1)) + 6000;
+            let tiempoAleatorio = Math.floor(Math.random() * (12000 - 5000 + 1)) + 5000;
             setTimeout(bucleCasual, tiempoAleatorio);
         }
 
