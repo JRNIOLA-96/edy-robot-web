@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - iOS Massive Clock & Horizontal Face</title>
+    <title>Edy - iOS Massive Clock & Smooth Colors</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -81,7 +81,7 @@
             color: #000;
         }
 
-        /* Contenedor del rostro rotado a 90 grados para que los ojos queden horizontales en el telÃ©fono acostado */
+        /* Contenedor del rostro rotado a 90 grados */
         .face-container {
             display: flex;
             justify-content: center;
@@ -117,7 +117,7 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ iOS HORIZONTAL OPTIMIZADO --- */
+        /* --- RELOJ iOS HORIZONTAL CON TRANSICIÃ“N DE COLOR FLUIDA --- */
         #clock-container {
             position: absolute;
             display: none;
@@ -146,7 +146,8 @@
 
         .digit-box {
             display: inline-block;
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            /* TransiciÃ³n suave tambiÃ©n para el color y la rotaciÃ³n */
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), color 2s ease-in-out;
             -webkit-text-stroke: 1.5px currentColor; 
             transform: scaleX(0.92);
         }
@@ -159,8 +160,8 @@
             margin-right: 3vh;
         }
 
-        #h1 { color: #ff69b4; z-index: 1; } 
-        #h2 { color: #ff69b4; margin-left: -5vh; z-index: 2; } 
+        #h1 { z-index: 1; } 
+        #h2 { margin-left: -5vh; z-index: 2; } 
         
         /* 2. Columna de Puntos Centrales Fijos */
         .separator {
@@ -196,8 +197,8 @@
             margin-left: 3vh;
         }
 
-        #m1 { color: #b19cd9; z-index: 1; } 
-        #m2 { color: #da70d6; margin-left: -5vh; z-index: 2; } 
+        #m1 { z-index: 1; } 
+        #m2 { margin-left: -5vh; z-index: 2; } 
 
         @keyframes pulseDot {
             0%, 100% { opacity: 0.3; }
@@ -346,7 +347,7 @@
 
             faceContainer.style.display = 'none';
             clockContainer.style.display = 'flex';
-            statusEl.textContent = 'Modo Reloj Optimizado';
+            statusEl.textContent = 'Modo Reloj CromÃ¡tico';
 
             enviarAccion('centro_bloqueado');
             actualizarHoraReloj();
@@ -375,6 +376,24 @@
             }
         }
 
+        /* Sistema de rotaciÃ³n armÃ³nica de tonos (gama fucsia, morado, lila, celeste) */
+        let cicloColor = 0;
+        function actualizarColoresArmonicos() {
+            if (!modoRelojActivo) return;
+            cicloColor += 0.8; // Velocidad suave de transiciÃ³n cromÃ¡tica
+
+            // Generamos tonos armÃ³nicos cercanos usando senos desfasados en el cÃ­rculo cromÃ¡tico (rango 270Â° a 330Â° / rosados-morados y acentos celestes)
+            let colorH1 = `hsl(${290 + Math.sin(cicloColor * 0.05) * 35}, 90%, 70%)`;
+            let colorH2 = `hsl(${315 + Math.cos(cicloColor * 0.06) * 30}, 95%, 68%)`;
+            let colorM1 = `hsl(${260 + Math.sin(cicloColor * 0.04 + 1) * 40}, 85%, 72%)`;
+            let colorM2 = `hsl(${335 + Math.cos(cicloColor * 0.05 + 2) * 35}, 90%, 65%)`;
+
+            h1El.style.color = colorH1;
+            h2El.style.color = colorH2;
+            m1El.style.color = colorM1;
+            m2El.style.color = colorM2;
+        }
+
         function actualizarHoraReloj() {
             if (!modoRelojActivo) return;
             const now = new Date();
@@ -386,6 +405,8 @@
             actualizarDigitoConRotacion(h2El, boxH2, 'h2', hours[1]);
             actualizarDigitoConRotacion(m1El, boxM1, 'm1', minutes[0]);
             actualizarDigitoConRotacion(m2El, boxM2, 'm2', minutes[1]);
+
+            actualizarColoresArmonicos();
 
             setTimeout(actualizarHoraReloj, 1000);
         }
