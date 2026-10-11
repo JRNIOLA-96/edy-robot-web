@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - iOS Massive Clock</title>
+    <title>Edy - iOS Massive Clock & Face</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -59,7 +59,7 @@
             z-index: 20;
         }
 
-        /* Pantalla horizontal forzada a 90 grados */
+        /* Pantalla horizontal forzada a 90 grados para el robot */
         .face-container {
             display: flex;
             justify-content: center;
@@ -94,7 +94,7 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ iOS MASIVO, GRUESO Y UNIDO --- */
+        /* --- RELOJ iOS DEFINITIVO (3 COLUMNAS INDEPENDIENTES) --- */
         #clock-container {
             position: absolute;
             display: none;
@@ -109,44 +109,70 @@
 
         .ios-clock {
             font-family: 'Fredoka', sans-serif;
-            font-size: 14rem; /* TamaÃ±o multiplicado y maximizado al espacio total */
+            font-size: 40vw;
             font-weight: 700;
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            line-height: 0.85;
+            justify-items: center;
+            width: 100%;
+            line-height: 0.7;
         }
 
-        /* Contenedor de cada dÃ­gito con grosor extra artificial mediante text-stroke */
         .digit-box {
             display: inline-block;
             transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-            -webkit-text-stroke: 3px currentColor; /* Hace que el ancho del nÃºmero se vea mÃ¡s grueso e inchado */
+            -webkit-text-stroke: 1.5px currentColor; 
+            transform: scaleX(0.92);
         }
 
-        /* Colores exactos y superposiciÃ³n ajustada para que estÃ©n muy juntos */
-        #h1 { color: #ff69b4; z-index: 1; } 
-        #h2 { color: #ff69b4; margin-left: -45px; z-index: 2; } /* SÃºper junto y encimado */
-        
-        #m1 { color: #b19cd9; margin-left: 20px; z-index: 1; } 
-        #m2 { color: #da70d6; margin-left: -45px; z-index: 2; } /* SÃºper junto y encimado */
+        /* 1. Columna de Horas (DÃ­gitos mÃ¡s unidos) */
+        .hours-container {
+            display: flex;
+            align-items: center;
+            justify-self: end;
+            margin-right: 25px;
+        }
 
+        #h1 { color: #ff69b4; z-index: 1; } 
+        #h2 { color: #ff69b4; margin-left: -24px; z-index: 2; } /* MÃ¡s unido */
+        
+        /* 2. Columna de Puntos Centrales Fijos */
         .separator {
+            position: relative;
+            width: 0px; 
             display: flex;
             flex-direction: column;
-            gap: 25px;
-            margin: 0 12px;
             justify-content: center;
             align-items: center;
+            justify-self: center;
             z-index: 3;
         }
 
         .dot {
-            width: 20px;
-            height: 20px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;  
+            height: 130px; 
             background-color: #8e8e93;
             border-radius: 50%;
             animation: pulseDot 2s infinite ease-in-out;
         }
+
+        .dot:nth-child(1) { top: -175px; }
+        .dot:nth-child(2) { top: 95px; }
+
+        /* 3. Columna de Minutos (DÃ­gitos mÃ¡s unidos) */
+        .minutes-container {
+            display: flex;
+            align-items: center;
+            justify-self: start;
+            margin-left: 25px;
+        }
+
+        #m1 { color: #b19cd9; z-index: 1; } 
+        #m2 { color: #da70d6; margin-left: -24px; z-index: 2; } /* MÃ¡s unido */
 
         @keyframes pulseDot {
             0%, 100% { opacity: 0.3; }
@@ -172,17 +198,26 @@
         </div>
     </div>
 
-    <!-- Pantalla de Reloj Masivo iOS -->
+    <!-- Pantalla de Reloj Definitiva -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="ios-clock">
-            <span class="digit-box" id="box-h1"><span id="h1">0</span></span>
-            <span class="digit-box" id="box-h2"><span id="h2">0</span></span>
-            <div class="separator">
+            <!-- Horas -->
+            <div class="hours-container">
+                <span class="digit-box" id="box-h1"><span id="h1">0</span></span>
+                <span class="digit-box" id="box-h2"><span id="h2">0</span></span>
+            </div>
+
+            <!-- Puntos -->
+            <div class="separator" id="box-sep">
                 <div class="dot"></div>
                 <div class="dot"></div>
             </div>
-            <span class="digit-box" id="box-m1"><span id="m1">0</span></span>
-            <span class="digit-box" id="box-m2"><span id="m2">0</span></span>
+
+            <!-- Minutos -->
+            <div class="minutes-container">
+                <span class="digit-box" id="box-m1"><span id="m1">0</span></span>
+                <span class="digit-box" id="box-m2"><span id="m2">0</span></span>
+            </div>
         </div>
     </div>
 
@@ -215,6 +250,7 @@
         let modoRelojActivo = false;
         let wakeLock = null;
 
+        // Memoria para guardar la Ãºltima rotaciÃ³n de cada dÃ­gito y evitar repetirla
         const ultimasRotaciones = { h1: null, h2: null, m1: null, m2: null };
 
         async function solicitarWakeLock() {
@@ -231,7 +267,7 @@
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
             mqttClient.on('connect', () => { 
                 mqttConectado = true; 
-                statusEl.textContent = 'Edy activo (Reloj Masivo)'; 
+                statusEl.textContent = 'Edy activo (Sistema Protegido)'; 
             });
         }
 
@@ -283,23 +319,26 @@
 
             faceContainer.style.display = 'none';
             clockContainer.style.display = 'flex';
-            statusEl.textContent = 'Modo Reloj Masivo iOS';
+            statusEl.textContent = 'Modo Reloj iOS';
 
             enviarAccion('centro_bloqueado');
             actualizarHoraReloj();
         }
 
+        function aplicarRotacionInteligente(cajaContenedor, clavePosicion) {
+            const posiblesAngulos = [6, -6, 0];
+            let ultimaRot = ultimasRotaciones[clavePosicion];
+            let angulosDisponibles = posiblesAngulos.filter(ang => ang !== ultimaRot);
+            let nuevoAngulo = angulosDisponibles[Math.floor(Math.random() * angulosDisponibles.length)];
+
+            ultimasRotaciones[clavePosicion] = nuevoAngulo;
+            cajaContenedor.style.transform = `scaleX(0.92) rotate(${nuevoAngulo}deg)`;
+        }
+
         function actualizarDigitoConRotacion(elementoTexto, cajaContenedor, clavePosicion, nuevoValor) {
             if (elementoTexto.textContent !== nuevoValor) {
                 elementoTexto.textContent = nuevoValor;
-
-                const posiblesAngulos = [6, -6, 0];
-                let ultimaRot = ultimasRotaciones[clavePosicion];
-                let angulosDisponibles = posiblesAngulos.filter(ang => ang !== ultimaRot);
-                let nuevoAngulo = angulosDisponibles[Math.floor(Math.random() * angulosDisponibles.length)];
-
-                ultimasRotaciones[clavePosicion] = nuevoAngulo;
-                cajaContenedor.style.transform = `rotate(${nuevoAngulo}deg)`;
+                aplicarRotacionInteligente(cajaContenedor, clavePosicion);
             }
         }
 
