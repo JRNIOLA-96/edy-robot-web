@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - LOOI Robot Companion</title>
+    <title>Edy - LOOI Autonomous Face</title>
     <style>
         body, html {
             margin: 0;
@@ -73,8 +73,8 @@
             justify-content: center;
             align-items: center;
             gap: 110px;
-            /* TransiciÃ³n suave y fluida para que los ojos se deslizen hacia las esquinas */
-            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            /* TransiciÃ³n suave y orgÃ¡nica para el movimiento de los ojos */
+            transition: transform 0.9s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         /* Ojos grandes, limpios y con brillo OLED estilo LOOI */
@@ -127,7 +127,7 @@
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
             mqttClient.on('connect', () => { 
                 mqttConectado = true; 
-                statusEl.textContent = 'Edy en lÃ­nea (Mirada casual)'; 
+                statusEl.textContent = 'Edy autÃ³nomo en lÃ­nea'; 
             });
         }
 
@@ -145,32 +145,58 @@
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
-        // Lista de esquinas posibles en coordenadas X e Y (en pÃ­xeles)
-        const esquinas = [
-            { x: -45, y: -30 }, // Esquina Superior Izquierda
-            { x:  45, y: -30 }, // Esquina Superior Derecha
-            { x: -45, y:  30 }, // Esquina Inferior Izquierda
-            { x:  45, y:  30 }  // Esquina Inferior Derecha
+        // DefiniciÃ³n de posiciones con sus respectivas etiquetas fÃ­sicas
+        const posiciones = [
+            { nombre: 'centro', x: 0,   y: 0 },
+            { nombre: 'arriba_izq', x: -55, y: -38 },
+            { nombre: 'arriba_der', x:  55, y: -38 },
+            { nombre: 'abajo_izq',  x: -55, y:  38 },
+            { nombre: 'abajo_der',  x:  55, y:  38 }
         ];
 
-        // Bucle autÃ³nomo: mira a una esquina durante 4 segundos y luego regresa al centro
-        function bucleCasual() {
-            // 1. Elegir una esquina aleatoria
-            const esquinaAleatoria = esquinas[Math.floor(Math.random() * esquinas.length)];
+        let posicionActualIndex = 0; // Empieza en el centro
+
+        function cicloAutonomo() {
+            // Decidir aleatoriamente el siguiente estado: 
+            // Mayor probabilidad de ir al centro si estÃ¡ en una esquina, o moverse entre esquinas.
+            let proximoIndex;
+            let currentPos = posiciones[posicionActualIndex];
+
+            if (currentPos.nombre === 'centro') {
+                // Desde el centro, elegir una de las 4 esquinas aleatoriamente
+                proximoIndex = Math.floor(Math.random() * 4) + 1; 
+            } else {
+                // Desde una esquina, 50% de probabilidad de ir al centro o 50% de ir a otra esquina
+                if (Math.random() < 0.5) {
+                    proximoIndex = 0; // Centro
+                } else {
+                    // Otra esquina aleatoria distinta a la actual
+                    do {
+                        proximoIndex = Math.floor(Math.random() * 4) + 1;
+                    } while (proximoIndex === posicionActualIndex);
+                }
+            }
+
+            posicionActualIndex = proximoIndex;
+            let destino = posiciones[posicionActualIndex];
+
+            // Mover los ojos visualmente en la pantalla
+            eyesRow.style.transform = `translate(${destino.x}px, ${destino.y}px)`;
             
-            // 2. Mover los ojos a la esquina y enviar orden fÃ­sica al ESP32
-            eyesRow.style.transform = `translate(${esquinaAleatoria.x}px, ${esquinaAleatoria.y}px)`;
-            enviarAccion('casual');
+            // Enviar la orden fÃ­sica al ESP32 (arriba, abajo o centro)
+            enviarAccion(destino.nombre);
 
-            // 3. Mantener la mirada en la esquina durante exactamente 4 segundos
-            setTimeout(() => {
-                // Regresar los ojos al centro
-                eyesRow.style.transform = 'translate(0px, 0px)';
-            }, 4000);
+            // Determinar cuÃ¡nto tiempo se quedarÃ¡ en esta nueva posiciÃ³n
+            let tiempoEstancia;
+            if (destino.nombre === 'centro') {
+                tiempoEstancia = 6000; // 6 segundos fijos en el centro (pasa la mayor parte del tiempo aquÃ­)
+            } else {
+                // Entre 3 y 5 segundos en las esquinas (3000 a 5000 ms)
+                tiempoEstancia = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+            }
 
-            // Programar el siguiente movimiento casual aleatorio (entre 8 y 15 segundos despuÃ©s)
-            let proximoIntervalo = Math.floor(Math.random() * (15000 - 8000 + 1)) + 8000;
-            setTimeout(bucleCasual, proximoIntervalo);
+            // Programar el siguiente movimiento
+            setTimeout(cicloAutonomo, tiempoEstancia);
         }
 
         function iniciarSistema() {
@@ -178,8 +204,8 @@
             activarPantallaCompleta();
             conectarMqtt();
             
-            // Iniciar el ciclo de miradas a las esquinas tras 2 segundos
-            setTimeout(bucleCasual, 2000);
+            // Arrancar el ciclo autÃ³nomo principal tras 2 segundos
+            setTimeout(cicloAutonomo, 2000);
         }
     </script>
 </body>
