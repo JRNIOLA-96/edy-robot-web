@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - LOOI Style Robot Face</title>
+    <title>Edy - LOOI Normal Face</title>
     <style>
         body, html {
             margin: 0;
@@ -36,7 +36,7 @@
         }
 
         #start-btn {
-            background-color: #00f3ff;
+            background-color: #d1f7ff;
             color: #000;
             border: none;
             padding: 16px 36px;
@@ -45,30 +45,26 @@
             border-radius: 35px;
             margin-top: 22px;
             cursor: pointer;
-            box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
-            transition: transform 0.2s;
+            box-shadow: 0 0 25px rgba(209, 247, 255, 0.5);
         }
-        #start-btn:active { transform: scale(0.95); }
 
         #status {
             position: absolute;
             left: 14px;
             bottom: 12px;
-            color: rgba(255, 255, 255, 0.45);
+            color: rgba(255, 255, 255, 0.4);
             font-size: 11px;
             z-index: 20;
         }
 
+        /* Pantalla horizontal forzada a 90 grados */
         .face-container {
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 16px;
             width: 100vh;
             height: 100vw;
             transform: rotate(90deg);
-            cursor: pointer;
             position: relative;
         }
 
@@ -76,201 +72,57 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 75px;
-            position: relative;
+            gap: 70px;
         }
 
+        /* Ojos idÃ©nticos a la referencia de LOOI: grandes, limpios, con profundidad y brillo OLED */
         .eye {
-            width: 120px;
-            height: 120px;
-            background: #00f3ff;
+            width: 170px;
+            height: 170px;
+            background: #d1f7ff;
             border-radius: 50%;
-            animation: looiBreathe 3.5s infinite ease-in-out;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 22px rgba(0, 243, 255, 0.5), inset -12px -12px 0px rgba(0, 80, 120, 0.4);
+            animation: blink 4.5s infinite ease-in-out;
+            box-shadow: 
+                0 0 35px rgba(209, 247, 255, 0.45),
+                inset -18px -18px 0px rgba(18, 75, 160, 0.55);
         }
 
-        .floating-elements {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: none;
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            93% { transform: scaleY(0.06); }
         }
-
-        .mouth {
-            width: 38px;
-            height: 12px;
-            background: transparent;
-            border-bottom: 5px solid #00f3ff;
-            border-radius: 0 0 18px 18px;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.6));
-        }
-
-        .command-output {
-            position: absolute;
-            inset: 0;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #00f3ff;
-            text-align: center;
-            text-shadow: 0 0 20px rgba(0, 243, 255, 0.8);
-            pointer-events: none;
-        }
-        .output-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
-        .output-value { font-size: 72px; font-weight: 900; line-height: 1; }
-        .output-subtitle { margin-top: 10px; font-size: 16px; color: rgba(255, 255, 255, 0.7); }
-
-        .face-container.show-output .eyes-row,
-        .face-container.show-output .mouth,
-        .face-container.show-output .floating-elements { display: none; }
-        .face-container.show-output .command-output { display: flex; }
-
-        @keyframes looiBreathe {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-        }
-
-        /* --- EXPRESIONES --- */
-
-        .expr-normal .eye { width: 120px; height: 120px; border-radius: 50%; background: #00f3ff; }
-        .expr-normal .mouth { width: 35px; height: 14px; border-bottom: 5px solid #00f3ff; border-radius: 0 0 16px 16px; }
-
-        .expr-enojado .eye { 
-            width: 130px; height: 95px; border-radius: 40px 40px 20px 20px; background: #ff2a5f; 
-            transform: rotate(-12deg); animation: rageVibrate 0.12s infinite alternate;
-            box-shadow: 0 0 25px rgba(255, 42, 95, 0.7), inset 0 -10px 0 rgba(100, 0, 30, 0.5);
-        }
-        .expr-enojado .eye + .eye { transform: rotate(12deg); }
-        .expr-enojado .mouth { width: 34px; height: 10px; border-top: 5px solid #ff2a5f; border-bottom: none; border-radius: 16px 16px 0 0; }
-        .expr-enojado .fe-enojado { display: block; }
-        @keyframes rageVibrate { 0% { transform: rotate(-12deg) translateY(0); } 100% { transform: rotate(-12deg) translateY(-4px); } }
-        .fe-enojado span { position: absolute; font-size: 26px; animation: steamRise 0.9s infinite linear; opacity: 0; }
-        .fe-enojado span:nth-child(1) { left: 16%; top: 42%; }
-        .fe-enojado span:nth-child(2) { right: 16%; top: 42%; animation-delay: 0.45s; }
-        @keyframes steamRise { 0% { transform: translateY(8px) scale(0.8); opacity: 1; } 100% { transform: translateY(-28px) scale(1.3); opacity: 0; } }
-
-        .expr-confundido .eye { width: 100px; height: 115px; border-radius: 45% 55% 60% 40% / 50% 40% 60% 50%; background: #00f3ff; transform: rotate(-16deg); }
-        .expr-confundido .eye + .eye { width: 115px; height: 100px; border-radius: 55% 45% 40% 60% / 40% 60% 50% 50%; transform: rotate(18deg); }
-        .expr-confundido .mouth { width: 28px; height: 12px; border-bottom: 4px solid #00f3ff; border-radius: 50%; transform: rotate(-12deg) translate(6px, -4px); }
-
-        .expr-sueo .eye { width: 125px; height: 50px; border-radius: 25px 25px 12px 12px; background: #2f8cff; opacity: 0.95; }
-        .expr-sueo .mouth { width: 22px; height: 18px; border-radius: 50%; background-color: #2f8cff; border: none; animation: sleepyYawn 2s infinite ease-in-out; }
-        @keyframes sleepyYawn { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
-        .expr-sueo .fe-sueo { display: block; }
-        .fe-sueo span { position: absolute; right: 26%; top: 35%; font-weight: bold; color: #2f8cff; font-size: 24px; animation: zzzAnim 2s infinite ease-in-out; opacity: 0; }
-        .fe-sueo span:nth-child(1) { animation-delay: 0s; right: 28%; }
-        .fe-sueo span:nth-child(2) { animation-delay: 0.7s; right: 24%; }
-        .fe-sueo span:nth-child(3) { animation-delay: 1.4s; right: 20%; }
-        @keyframes zzzAnim { 0% { transform: translate(0, 0) scale(0.7); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(35px, -45px) scale(1.35); opacity: 0; } }
-
-        .expr-cosquillas .eye { width: 120px; height: 60px; border-radius: 60px 60px 14px 14px; background: #00f3ff; animation: happyJump 0.45s infinite alternate ease-in-out; }
-        .expr-cosquillas .mouth { width: 50px; height: 24px; border-bottom: 6px solid #00f3ff; border-radius: 0 0 30px 30px; background: transparent; }
-        @keyframes happyJump { 0% { transform: translateY(0); } 100% { transform: translateY(-6px); } }
-
-        .expr-beso .eye { width: 115px; height: 115px; background-color: #ff3399; border-radius: 50% 50% 0 50%; transform: rotate(-45deg) scale(1.05); animation: heartBeat 0.75s infinite alternate ease-in-out; box-shadow: 0 0 22px rgba(255, 51, 153, 0.6); }
-        .expr-beso .eye + .eye { border-radius: 50% 50% 50% 0; transform: rotate(45deg) scale(1.05); animation: heartBeat 0.75s infinite alternate ease-in-out; }
-        .expr-beso .mouth { width: 26px; height: 26px; background: transparent; border: none; border-right: 5px solid #ff1a8c; border-top: 5px solid #ff1a8c; border-bottom: 5px solid #ff1a8c; border-radius: 0 50% 50% 0; transform: rotate(-90deg) scale(1.35); }
-        .expr-beso .fe-beso { display: block; }
-        .fe-beso span { position: absolute; font-size: 26px; animation: heartFloat 1.4s infinite ease-in; opacity: 0; }
-        .fe-beso span:nth-child(1) { left: 22%; top: 50%; }
-        .fe-beso span:nth-child(2) { right: 22%; top: 50%; animation-delay: 0.65s; }
-        @keyframes heartFloat { 0% { transform: translateY(0) scale(0.6); opacity: 1; } 100% { transform: translateY(-55px) scale(1.35); opacity: 0; } }
-        @keyframes heartBeat { 0% { transform: scale(1) rotate(var(--r, -45deg)); } 100% { transform: scale(1.16) rotate(var(--r, -45deg)); } }
-
-        /* NUEVA EXPRESIÃ“N: RISA (> < perfectamente centrados y estilizados) */
-        .expr-risa .eye {
-            width: 110px; height: 110px;
-            background: transparent;
-            border-radius: 0;
-            box-shadow: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 120px;
-            font-weight: 900;
-            color: #00f3ff;
-            text-shadow: 0 0 20px rgba(0, 243, 255, 0.7);
-            animation: laughBounce 0.3s infinite alternate ease-in-out;
-        }
-        .expr-risa .eye:first-child::before { content: ">"; }
-        .expr-risa .eye:last-child::before { content: "<"; }
-        .expr-risa .mouth {
-            width: 45px; height: 22px;
-            background: #00f3ff;
-            border-bottom: none;
-            border-radius: 0 0 25px 25px;
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.7);
-        }
-        @keyframes laughBounce {
-            0% { transform: translateY(0) scale(1); }
-            100% { transform: translateY(-5px) scale(1.05); }
-        }
-
-        .expr-escucha .eyes-row { gap: 85px; }
-        .expr-escucha .eye { width: 125px; height: 125px; border-radius: 50%; background-color: #ffcc00; animation: listenAttention 0.8s infinite alternate ease-in-out; box-shadow: 0 0 25px rgba(255, 204, 0, 0.6), inset -10px -10px 0 rgba(150, 100, 0, 0.4); }
-        .expr-escucha .mouth { width: 28px; height: 28px; background-color: #ffcc00; border-radius: 50%; border: none; animation: listenMouth 0.8s infinite alternate ease-in-out; }
-        .expr-escucha .fe-escucha { display: block; }
-        .fe-escucha span { position: absolute; width: 75px; height: 75px; border: 4px solid rgba(255, 204, 0, 0.8); border-top-color: transparent; border-bottom-color: transparent; border-radius: 50%; animation: listenWavePulse 1.2s infinite ease-out; opacity: 0; }
-        .fe-escucha span:nth-child(1) { left: 9%; top: 42%; }
-        .fe-escucha span:nth-child(2) { right: 9%; top: 42%; animation-delay: 0.5s; }
-        @keyframes listenAttention { 0% { transform: scale(1); } 100% { transform: scale(1.06); } }
-        @keyframes listenMouth { 0% { transform: scale(0.85); } 100% { transform: scale(1.2); } }
-        @keyframes listenWavePulse { 0% { transform: scale(0.4); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
     </style>
 </head>
 <body>
 
     <div id="start-screen" onclick="iniciarSistema()">
         <h1>ðŸ¤– Robot Edy</h1>
-        <p>Toca para conectar con Edy</p>
-        <button id="start-btn">CONECTAR</button>
+        <p>Toca la pantalla para despertar a Edy</p>
+        <button id="start-btn">INICIAR</button>
     </div>
 
-    <div id="status">Conectando...</div>
+    <div id="status">Desconectado</div>
 
-    <div class="face-container expr-normal" id="face" onclick="tocarCara()">
-        <div class="floating-elements fe-enojado"><span>ðŸ”¥</span><span>ðŸ”¥</span></div>
-        <div class="floating-elements fe-sueo"><span>Z</span><span>z</span><span>Z</span></div>
-        <div class="floating-elements fe-beso"><span>â¤ï¸</span><span>ðŸ’–</span></div>
-        <div class="floating-elements fe-escucha"><span>ðŸŽ™ï¸</span><span>ðŸŽ™ï¸</span></div>
-
+    <div class="face-container" id="face">
         <div class="eyes-row">
             <div class="eye"></div>
             <div class="eye"></div>
-        </div>
-        <div class="mouth" id="mouth"></div>
-        <div class="command-output" id="command-output">
-            <div class="output-title" id="output-title"></div>
-            <div class="output-value" id="output-value"></div>
-            <div class="output-subtitle" id="output-subtitle"></div>
         </div>
     </div>
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script>
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const statusEl = document.getElementById('status');
-        const face = document.getElementById('face');
-        const outputTitle = document.getElementById('output-title');
-        const outputValue = document.getElementById('output-value');
-        const outputSubtitle = document.getElementById('output-subtitle');
-        const PALABRAS_ACTIVACION = ['edy', 'edi', 'edie', 'eddy', 'heddy', 'hey edy'];
         const MQTT_URL = 'wss://broker.hivemq.com:8884/mqtt';
         const MQTT_ACTION_TOPIC = 'edy/jordan/robot01/accion';
-        const MQTT_STATUS_TOPIC = 'edy/jordan/robot01/estado';
         let mqttClient = null;
         let mqttConectado = false;
 
         function conectarMqtt() {
-            if (!window.mqtt) { statusEl.textContent = 'MQTT no disponible'; return; }
+            if (!window.mqtt) return;
             const clientId = 'edy-web-' + Math.random().toString(16).slice(2);
-            mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000, connectTimeout: 8000 });
-            mqttClient.on('connect', () => { mqttConectado = true; mqttClient.subscribe(MQTT_STATUS_TOPIC); statusEl.textContent = 'Edy en lÃ­nea (MQTT)'; });
-            mqttClient.on('message', (topic, payload) => { if (topic === MQTT_STATUS_TOPIC) statusEl.textContent = 'ESP32: ' + payload.toString(); });
+            mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
+            mqttClient.on('connect', () => { mqttConectado = true; statusEl.textContent = 'Edy conectado (Modo casual)'; });
         }
 
         async function enviarAccion(tipo) {
@@ -278,203 +130,22 @@
             try { await fetch('/accion?tipo=' + encodeURIComponent(tipo), { cache: 'no-store' }); } catch (e) {}
         }
 
-        function playSound(tipo) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            let now = audioCtx.currentTime;
-
-            if (tipo === 'mov_enojado') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(130, now); osc.frequency.setValueAtTime(75, now + 0.4);
-                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-            } else if (tipo === 'mov_confundido') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(380, now); osc.frequency.setValueAtTime(580, now + 0.15);
-                gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-            } else if (tipo === 'mov_sueo') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(180, now); osc.frequency.linearRampToValueAtTime(60, now + 0.8);
-                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
-            } else if (tipo === 'mov_cosquillas') {
-                osc.type = 'square';
-                for(let i=0; i<4; i++) osc.frequency.setValueAtTime(500 + (i*160), now + (i * 0.08));
-                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
-            } else if (tipo === 'mov_beso') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(750, now); osc.frequency.setValueAtTime(1150, now + 0.1);
-                gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3); return;
-            } else if (tipo === 'mov_risa') {
-                // Sonido pausado de risita: "chi chi chi chi"
-                osc.type = 'sine';
-                for(let i=0; i<4; i++) {
-                    osc.frequency.setValueAtTime(900, now + (i * 0.09));
-                    osc.frequency.setValueAtTime(1200, now + (i * 0.09) + 0.04);
-                }
-                gain.gain.setValueAtTime(0.12, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
-                osc.start(now); osc.stop(now + 0.45); return;
-            } else if (tipo === 'mov_escucha') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(460, now); osc.frequency.setValueAtTime(680, now + 0.08); osc.frequency.setValueAtTime(920, now + 0.18);
-                gain.gain.setValueAtTime(0.16, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
-                osc.start(now); osc.stop(now + 0.45); return;
-            } else {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(440, now);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-            }
-            osc.start(now); osc.stop(now + 0.3);
-        }
-
-        const listaExpr = [
-            { nombre: 'normal', mov: 'mov_normal' },
-            { nombre: 'enojado', mov: 'mov_enojado' },
-            { nombre: 'confundido', mov: 'mov_confundido' },
-            { nombre: 'sueo', mov: 'mov_sueo' },
-            { nombre: 'cosquillas', mov: 'mov_cosquillas' },
-            { nombre: 'beso', mov: 'mov_beso' },
-            { nombre: 'risa', mov: 'mov_risa' } // Â¡AÃ±adida a la rotaciÃ³n aleatoria!
-        ];
-
-        let temporizadorRandom = null;
-        let escuchandoVoz = false;
-        let esperandoComando = false;
-        let temporizadorComando = null;
-        let modoActivo = 'idle';
-        let recognition = null;
-
         function activarPantallaCompleta() {
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
-        function cambiarAleatorio() {
-            if (modoActivo !== 'idle') return;
-            activarPantallaCompleta();
-            let actual = listaExpr[Math.floor(Math.random() * listaExpr.length)];
-
-            face.classList.remove('show-output');
-            face.className = "face-container expr-" + actual.nombre;
-            playSound(actual.mov);
-            enviarAccion(actual.mov);
-
-            let tiempoAleatorio = Math.floor(Math.random() * (15000 - 3000 + 1)) + 3000;
-            clearTimeout(temporizadorRandom);
-            temporizadorRandom = setTimeout(cambiarAleatorio, tiempoAleatorio);
+        // Bucle aleatorio casual cada 6 a 14 segundos para cambiar la posiciÃ³n fÃ­sica relajada
+        function bucleCasual() {
+            enviarAccion('casual');
+            let tiempoAleatorio = Math.floor(Math.random() * (14000 - 6000 + 1)) + 6000;
+            setTimeout(bucleCasual, tiempoAleatorio);
         }
 
-        function tocarCara() {
-            if (modoActivo !== 'idle') return;
-            clearTimeout(temporizadorRandom);
-            cambiarAleatorio();
-        }
-
-        function iniciarReconocimientoVoz() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return;
-
-            recognition = new SpeechRecognition();
-            recognition.lang = 'es-ES';
-            recognition.continuous = true;
-            recognition.interimResults = true;
-
-            recognition.onresult = function(event) {
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const speechResult = event.results[i][0].transcript;
-                    const tieneWake = contieneActivacion(speechResult);
-                    if (modoActivo === 'idle' && !tieneWake) continue;
-
-                    if (!event.results[i].isFinal && modoActivo === 'idle' && tieneWake) activarModoEscucha();
-                    if (event.results[i].isFinal) procesarVoz(speechResult);
-                }
-            };
-
-            recognition.onerror = () => setTimeout(() => { try { recognition.start(); } catch(e){} }, 1000);
-            recognition.onend = () => { try { recognition.start(); } catch(e){} };
-            recognition.start();
-        }
-
-        async function pedirPermisoMicrofono() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(t => t.stop());
-                return true;
-            } catch (e) { return false; }
-        }
-
-        function normalizarTexto(t) {
-            return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.,;:!?Â¿Â¡]/g, ' ').replace(/\s+/g, ' ').trim();
-        }
-
-        function contieneActivacion(t) {
-            const l = normalizarTexto(t);
-            return PALABRAS_ACTIVACION.some(p => l.includes(p));
-        }
-
-        function quitarActivacion(t) {
-            let l = normalizarTexto(t);
-            PALABRAS_ACTIVACION.forEach(p => { l = l.split(p).join(''); });
-            return l.replace(/\s+/g, ' ').trim();
-        }
-
-        function procesarVoz(texto) {
-            const tNorm = normalizarTexto(texto);
-            if (esperandoComando) {
-                const cmd = quitarActivacion(texto);
-                if (cmd) ejecutarComandoVoz(cmd);
-                return;
-            }
-            if (modoActivo === 'idle' && contieneActivacion(tNorm)) {
-                activarModoEscucha();
-                const cmdFrase = quitarActivacion(texto);
-                if (cmdFrase.length > 2) setTimeout(() => ejecutarComandoVoz(cmdFrase), 450);
-            }
-        }
-
-        function activarModoEscucha() {
-            activarPantallaCompleta();
-            clearTimeout(temporizadorRandom);
-            clearTimeout(temporizadorComando);
-            escuchandoVoz = true; esperandoComando = true; modoActivo = 'escucha';
-
-            face.className = "face-container expr-escucha";
-            playSound('mov_escucha');
-            enviarAccion('mov_escucha');
-            outputTitle.textContent = outputValue.textContent = outputSubtitle.textContent = '';
-            statusEl.textContent = 'Edy te escucha...';
-
-            temporizadorComando = setTimeout(() => {
-                escuchandoVoz = false; esperandoComando = false; modoActivo = 'idle';
-                cambiarAleatorio();
-            }, 6000);
-        }
-
-        function ejecutarComandoVoz(comando) {
-            clearTimeout(temporizadorComando);
-            esperandoComando = false; modoActivo = 'respuesta';
-            if (normalizarTexto(comando).includes('hora')) { mostrarHora(); return; }
-            mostrarMensajeTemporal('Comando', comando, 2500);
-        }
-
-        function mostrarHora() {
-            const ahora = new Date();
-            mostrarMensajeTemporal('La hora es', ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), 5000, ahora.toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' }));
-        }
-
-        function mostrarMensajeTemporal(titulo, valor, duracion, subtitulo = '') {
-            clearTimeout(temporizadorRandom); clearTimeout(temporizadorComando);
-            escuchandoVoz = true; esperandoComando = false; modoActivo = 'respuesta';
-            face.className = "face-container expr-normal show-output";
-            outputTitle.textContent = titulo; outputValue.textContent = valor; outputSubtitle.textContent = subtitulo;
-            setTimeout(() => { face.classList.remove('show-output'); escuchandoVoz = false; modoActivo = 'idle'; cambiarAleatorio(); }, duracion);
-        }
-
-        async function iniciarSistema() {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+        function iniciarSistema() {
             document.getElementById('start-screen').style.display = 'none';
             activarPantallaCompleta();
             conectarMqtt();
-            const micOk = await pedirPermisoMicrofono();
-            modoActivo = 'idle';
-            cambiarAleatorio();
-            if (micOk) iniciarReconocimientoVoz();
+            bucleCasual();
         }
     </script>
 </body>
