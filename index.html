@@ -59,6 +59,28 @@
             z-index: 20;
         }
 
+        /* BotÃ³n flotante rÃ¡pido para saltar al reloj al instante */
+        #btn-forzar-reloj {
+            position: absolute;
+            right: 14px;
+            bottom: 12px;
+            background-color: rgba(255, 105, 180, 0.2);
+            color: #ff69b4;
+            border: 1px solid #ff69b4;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 15px;
+            cursor: pointer;
+            z-index: 100;
+            outline: none;
+        }
+
+        #btn-forzar-reloj:active {
+            background-color: #ff69b4;
+            color: #000;
+        }
+
         /* Pantalla horizontal forzada a 90 grados para el robot */
         .face-container {
             display: flex;
@@ -94,7 +116,7 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ iOS DEFINITIVO (3 COLUMNAS INDEPENDIENTES) --- */
+        /* --- RELOJ iOS DEFINITIVO (Adaptado correctamente a mÃ³viles) --- */
         #clock-container {
             position: absolute;
             display: none;
@@ -109,7 +131,8 @@
 
         .ios-clock {
             font-family: 'Fredoka', sans-serif;
-            font-size: 40vw;
+            /* Usamos unidades relativas seguras basadas en el alto del contenedor rotado para evitar distorsiones */
+            font-size: min(36vw, 36vh); 
             font-weight: 700;
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -126,7 +149,7 @@
             transform: scaleX(0.92);
         }
 
-        /* 1. Columna de Horas (DÃ­gitos mÃ¡s unidos) */
+        /* 1. Columna de Horas */
         .hours-container {
             display: flex;
             align-items: center;
@@ -135,9 +158,9 @@
         }
 
         #h1 { color: #ff69b4; z-index: 1; } 
-        #h2 { color: #ff69b4; margin-left: -24px; z-index: 2; } /* MÃ¡s unido */
+        #h2 { color: #ff69b4; margin-left: -24px; z-index: 2; } 
         
-        /* 2. Columna de Puntos Centrales Fijos */
+        /* 2. Columna de Puntos Centrales Fijos (Proporcionales y estables) */
         .separator {
             position: relative;
             width: 0px; 
@@ -153,17 +176,17 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            width: 130px;  
-            height: 130px; 
+            width: min(11vw, 11vh);  
+            height: min(11vw, 11vh); 
             background-color: #8e8e93;
             border-radius: 50%;
             animation: pulseDot 2s infinite ease-in-out;
         }
 
-        .dot:nth-child(1) { top: -175px; }
-        .dot:nth-child(2) { top: 95px; }
+        .dot:nth-child(1) { top: calc(min(-36vw, -36vh) * 0.42); }
+        .dot:nth-child(2) { top: calc(min(36vw, 36vh) * 0.23); }
 
-        /* 3. Columna de Minutos (DÃ­gitos mÃ¡s unidos) */
+        /* 3. Columna de Minutos */
         .minutes-container {
             display: flex;
             align-items: center;
@@ -172,7 +195,7 @@
         }
 
         #m1 { color: #b19cd9; z-index: 1; } 
-        #m2 { color: #da70d6; margin-left: -24px; z-index: 2; } /* MÃ¡s unido */
+        #m2 { color: #da70d6; margin-left: -24px; z-index: 2; } 
 
         @keyframes pulseDot {
             0%, 100% { opacity: 0.3; }
@@ -189,6 +212,9 @@
     </div>
 
     <div id="status">Desconectado</div>
+
+    <!-- BotÃ³n directo para forzar el modo reloj al instante -->
+    <button id="btn-forzar-reloj" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
 
     <!-- Rostro normal / curioso -->
     <div class="face-container" id="face" onclick="registrarInteraccion()">
@@ -250,7 +276,6 @@
         let modoRelojActivo = false;
         let wakeLock = null;
 
-        // Memoria para guardar la Ãºltima rotaciÃ³n de cada dÃ­gito y evitar repetirla
         const ultimasRotaciones = { h1: null, h2: null, m1: null, m2: null };
 
         async function solicitarWakeLock() {
@@ -267,7 +292,7 @@
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
             mqttClient.on('connect', () => { 
                 mqttConectado = true; 
-                statusEl.textContent = 'Edy activo (Sistema Protegido)'; 
+                statusEl.textContent = 'Edy activo'; 
             });
         }
 
@@ -323,6 +348,13 @@
 
             enviarAccion('centro_bloqueado');
             actualizarHoraReloj();
+        }
+
+        /* FunciÃ³n para forzar el reloj manualmente con el botÃ³n */
+        function forzarModoRelojManual() {
+            clearTimeout(timerInactividad30s);
+            clearTimeout(timerReloj1min);
+            iniciarModoReloj();
         }
 
         function aplicarRotacionInteligente(cajaContenedor, clavePosicion) {
