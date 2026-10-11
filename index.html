@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - iOS Bubble Clock & Face</title>
+    <title>Edy - iOS Dynamic Rotating Clock</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&display=swap" rel="stylesheet">
     <style>
@@ -94,7 +94,7 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ ESTILO iOS BURBUJA (UNIDO Y SUPERPUESTO) --- */
+        /* --- RELOJ ESTILO iOS CON ROTACIÃ“N DINÃMICA --- */
         #clock-container {
             position: absolute;
             display: none;
@@ -109,32 +109,36 @@
 
         .ios-clock {
             font-family: 'Fredoka', sans-serif;
-            font-size: 9rem; 
+            font-size: 8.5rem; 
             font-weight: 600;
             display: flex;
             align-items: center;
+            gap: 15px; /* Espaciado equilibrado entre nÃºmeros */
         }
 
-        /* SuperposiciÃ³n y acercamiento de los dÃ­gitos principales */
-        #h1 { color: #ff69b4; z-index: 2; } 
-        #h2 { color: #ff69b4; margin-left: -28px; z-index: 3; } /* Se superpone ligeramente sobre h1 */
-        
-        #m1 { color: #b19cd9; margin-left: 10px; z-index: 2; } 
-        #m2 { color: #da70d6; margin-left: -28px; z-index: 3; } /* Se superpone ligeramente sobre m1 */
+        /* Cada dÃ­gito es un contenedor independiente con transiciÃ³n suave para la rotaciÃ³n */
+        .digit-box {
+            display: inline-block;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #h1 { color: #ff69b4; } /* Rosa */
+        #h2 { color: #ff69b4; } /* Rosa */
+        #m1 { color: #b19cd9; } /* Lila */
+        #m2 { color: #da70d6; } /* Morado */
 
         .separator {
             display: flex;
             flex-direction: column;
-            gap: 18px;
-            margin: 0 10px;
+            gap: 16px;
+            margin: 0 5px;
             justify-content: center;
             align-items: center;
-            z-index: 4;
         }
 
         .dot {
-            width: 16px;
-            height: 16px;
+            width: 15px;
+            height: 15px;
             background-color: #8e8e93;
             border-radius: 50%;
             animation: pulseDot 2s infinite ease-in-out;
@@ -164,15 +168,17 @@
         </div>
     </div>
 
-    <!-- Pantalla de Reloj Estilo iOS Burbuja Superpuesto -->
+    <!-- Pantalla de Reloj DinÃ¡mico con RotaciÃ³n Inteligente -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="ios-clock">
-            <span id="h1">0</span><span id="h2">0</span>
+            <span class="digit-box" id="box-h1"><span id="h1">0</span></span>
+            <span class="digit-box" id="box-h2"><span id="h2">0</span></span>
             <div class="separator">
                 <div class="dot"></div>
                 <div class="dot"></div>
             </div>
-            <span id="m1">0</span><span id="m2">0</span>
+            <span class="digit-box" id="box-m1"><span id="m1">0</span></span>
+            <span class="digit-box" id="box-m2"><span id="m2">0</span></span>
         </div>
     </div>
 
@@ -188,6 +194,11 @@
         const m1El = document.getElementById('m1');
         const m2El = document.getElementById('m2');
 
+        const boxH1 = document.getElementById('box-h1');
+        const boxH2 = document.getElementById('box-h2');
+        const boxM1 = document.getElementById('box-m1');
+        const boxM2 = document.getElementById('box-m2');
+
         const MQTT_URL = 'wss://broker.hivemq.com:8884/mqtt';
         const MQTT_ACTION_TOPIC = 'edy/jordan/robot01/accion';
         let mqttClient = null;
@@ -199,6 +210,9 @@
         let modoCuriosoActivo = false;
         let modoRelojActivo = false;
         let wakeLock = null;
+
+        // Memoria para guardar la Ãºltima rotaciÃ³n de cada posiciÃ³n y evitar repetirla
+        const ultimasRotaciones = { h1: null, h2: null, m1: null, m2: null };
 
         async function solicitarWakeLock() {
             if ('wakeLock' in navigator) {
@@ -214,7 +228,7 @@
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
             mqttClient.on('connect', () => { 
                 mqttConectado = true; 
-                statusEl.textContent = 'Edy activo (Pantalla protegida)'; 
+                statusEl.textContent = 'Edy activo (Reloj dinÃ¡mico)'; 
             });
         }
 
@@ -266,10 +280,33 @@
 
             faceContainer.style.display = 'none';
             clockContainer.style.display = 'flex';
-            statusEl.textContent = 'Modo Reloj iOS Superpuesto';
+            statusEl.textContent = 'Modo Reloj DinÃ¡mico iOS';
 
             enviarAccion('centro_bloqueado');
             actualizarHoraReloj();
+        }
+
+        // FunciÃ³n inteligente para actualizar dÃ­gitos aplicando rotaciÃ³n anti-repeticiÃ³n de Â±6Â° o 0Â°
+        function actualizarDigitoConRotacion(elementoTexto, cajaContenedor, clavePosicion, nuevoValor) {
+            if (elementoTexto.textContent !== nuevoValor) {
+                elementoTexto.textContent = nuevoValor;
+
+                // Opciones posibles de rotaciÃ³n: +6Â°, -6Â° o 0Â°
+                const posiblesAngulos = [6, -6, 0];
+                let ultimaRot = ultimasRotaciones[clavePosicion];
+
+                // Filtrar para que la nueva rotaciÃ³n NO sea igual a la anterior
+                let angulosDisponibles = posiblesAngulos.filter(ang => ang !== ultimaRot);
+
+                // Elegir aleatoriamente entre las opciones restantes
+                let nuevoAngulo = angulosDisponibles[Math.floor(Math.random() * angulosDisponibles.length)];
+
+                // Guardar en memoria
+                ultimasRotaciones[clavePosicion] = nuevoAngulo;
+
+                // Aplicar la rotaciÃ³n visual con CSS
+                cajaContenedor.style.transform = `rotate(${nuevoAngulo}deg)`;
+            }
         }
 
         function actualizarHoraReloj() {
@@ -279,10 +316,10 @@
             let hours = (now.getHours() % 12 || 12).toString().padStart(2, '0');
             let minutes = now.getMinutes().toString().padStart(2, '0');
 
-            h1El.textContent = hours[0];
-            h2El.textContent = hours[1];
-            m1El.textContent = minutes[0];
-            m2El.textContent = minutes[1];
+            actualizarDigitoConRotacion(h1El, boxH1, 'h1', hours[0]);
+            actualizarDigitoConRotacion(h2El, boxH2, 'h2', hours[1]);
+            actualizarDigitoConRotacion(m1El, boxM1, 'm1', minutes[0]);
+            actualizarDigitoConRotacion(m2El, boxM2, 'm2', minutes[1]);
 
             setTimeout(actualizarHoraReloj, 1000);
         }
