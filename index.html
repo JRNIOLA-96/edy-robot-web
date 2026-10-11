@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - LOOI Autonomous Face</title>
+    <title>Edy - Smart Face & Clock</title>
     <style>
         body, html {
             margin: 0;
@@ -73,11 +73,9 @@
             justify-content: center;
             align-items: center;
             gap: 110px;
-            /* TransiciÃ³n suave y orgÃ¡nica para el movimiento de los ojos */
             transition: transform 0.9s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        /* Ojos grandes, limpios y con brillo OLED estilo LOOI */
         .eye {
             width: 165px;
             height: 165px;
@@ -93,6 +91,53 @@
             0%, 90%, 100% { transform: scaleY(1); }
             93% { transform: scaleY(0.06); }
         }
+
+        /* --- RELOJ DIGITAL ESTILO iOS CON GAMA DE COLORES ARMÃ“NICOS --- */
+        #clock-container {
+            position: absolute;
+            display: none; /* Oculto por defecto hasta que pase 1 minuto */
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(90deg);
+            z-index: 50;
+            background-color: #000000;
+        }
+
+        .clock-digit {
+            font-size: 150px;
+            font-weight: 900;
+            line-height: 1;
+            font-family: system-ui, -apple-system, sans-serif;
+            letter-spacing: -2px;
+        }
+
+        /* Tonos armÃ³nicos cercanos y elegantes inspirados en la referencia */
+        #digit-h { color: #ff66b2; } /* Rosa vibrante */
+        #digit-m1 { color: #b886ff; } /* Lila suave */
+        #digit-m2 { color: #d946ef; } /* Morado magenta luminoso */
+
+        .clock-dots {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            justify-content: center;
+        }
+
+        .dot {
+            width: 18px;
+            height: 18px;
+            background-color: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            animation: pulseDot 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
     </style>
 </head>
 <body>
@@ -105,21 +150,46 @@
 
     <div id="status">Desconectado</div>
 
-    <div class="face-container" id="face">
+    <!-- Rostro normal / curioso -->
+    <div class="face-container" id="face" onclick="registrarInteraccion()">
         <div class="eyes-row" id="eyes-row">
             <div class="eye"></div>
             <div class="eye"></div>
         </div>
     </div>
 
+    <!-- Pantalla de Reloj Digital (Aparece al minuto de inactividad) -->
+    <div id="clock-container" onclick="registrarInteraccion()">
+        <div class="clock-digit" id="digit-h">9</div>
+        <div class="clock-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <div class="clock-digit" id="digit-m1">4</div>
+        <div class="clock-digit" id="digit-m2">1</div>
+    </div>
+
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script>
         const statusEl = document.getElementById('status');
         const eyesRow = document.getElementById('eyes-row');
+        const faceContainer = document.getElementById('face');
+        const clockContainer = document.getElementById('clock-container');
+        
+        const digitH = document.getElementById('digit-h');
+        const digitM1 = document.getElementById('digit-m1');
+        const digitM2 = document.getElementById('digit-m2');
+
         const MQTT_URL = 'wss://broker.hivemq.com:8884/mqtt';
         const MQTT_ACTION_TOPIC = 'edy/jordan/robot01/accion';
         let mqttClient = null;
         let mqttConectado = false;
+
+        let timerInactividad30s = null;
+        let timerReloj1min = null;
+        let temporizadorEsquina = null;
+        let modoCuriosoActivo = false;
+        let modoRelojActivo = false;
 
         function conectarMqtt() {
             if (!window.mqtt) return;
@@ -127,7 +197,7 @@
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
             mqttClient.on('connect', () => { 
                 mqttConectado = true; 
-                statusEl.textContent = 'Edy autÃ³nomo en lÃ­nea'; 
+                statusEl.textContent = 'Edy activo (Normal)'; 
             });
         }
 
@@ -145,7 +215,6 @@
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
-        // DefiniciÃ³n de posiciones con sus respectivas etiquetas fÃ­sicas
         const posiciones = [
             { nombre: 'centro', x: 0,   y: 0 },
             { nombre: 'arriba_izq', x: -55, y: -38 },
@@ -154,58 +223,95 @@
             { nombre: 'abajo_der',  x:  55, y:  38 }
         ];
 
-        let posicionActualIndex = 0; // Empieza en el centro
+        function iniciarModoCurioso() {
+            if (modoRelojActivo) return;
+            modoCuriosoActivo = true;
+            statusEl.textContent = 'Edy curioso (Inactivo)...';
+            bucleCurioso();
+        }
 
-        function cicloAutonomo() {
-            // Decidir aleatoriamente el siguiente estado: 
-            // Mayor probabilidad de ir al centro si estÃ¡ en una esquina, o moverse entre esquinas.
-            let proximoIndex;
-            let currentPos = posiciones[posicionActualIndex];
+        function bucleCurioso() {
+            if (!modoCuriosoActivo || modoRelojActivo) return;
+            let proximoIndex = Math.floor(Math.random() * 4) + 1;
+            let destino = posiciones[proximoIndex];
 
-            if (currentPos.nombre === 'centro') {
-                // Desde el centro, elegir una de las 4 esquinas aleatoriamente
-                proximoIndex = Math.floor(Math.random() * 4) + 1; 
-            } else {
-                // Desde una esquina, 50% de probabilidad de ir al centro o 50% de ir a otra esquina
-                if (Math.random() < 0.5) {
-                    proximoIndex = 0; // Centro
-                } else {
-                    // Otra esquina aleatoria distinta a la actual
-                    do {
-                        proximoIndex = Math.floor(Math.random() * 4) + 1;
-                    } while (proximoIndex === posicionActualIndex);
-                }
-            }
-
-            posicionActualIndex = proximoIndex;
-            let destino = posiciones[posicionActualIndex];
-
-            // Mover los ojos visualmente en la pantalla
             eyesRow.style.transform = `translate(${destino.x}px, ${destino.y}px)`;
-            
-            // Enviar la orden fÃ­sica al ESP32 (arriba, abajo o centro)
             enviarAccion(destino.nombre);
 
-            // Determinar cuÃ¡nto tiempo se quedarÃ¡ en esta nueva posiciÃ³n
-            let tiempoEstancia;
-            if (destino.nombre === 'centro') {
-                tiempoEstancia = 6000; // 6 segundos fijos en el centro (pasa la mayor parte del tiempo aquÃ­)
-            } else {
-                // Entre 3 y 5 segundos en las esquinas (3000 a 5000 ms)
-                tiempoEstancia = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+            let tiempoEstancia = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+            temporizadorEsquina = setTimeout(bucleCurioso, tiempoEstancia);
+        }
+
+        // --- ACTIVAR RELOJ DIGITAL AL MINUTO DE INACTIVIDAD ---
+        function iniciarModoReloj() {
+            modoCuriosoActivo = false;
+            clearTimeout(temporizadorEsquina);
+            modoRelojActivo = true;
+
+            // Ocultar ojos y mostrar reloj
+            faceContainer.style.display = 'none';
+            clockContainer.style.display = 'flex';
+            statusEl.textContent = 'Modo Reloj Digital';
+
+            // Ordenar al ESP32 que ponga la cabeza fija en el centro y bloquee movimiento
+            enviarAccion('centro_bloqueado');
+            actualizarHoraReloj();
+        }
+
+        function actualizarHoraReloj() {
+            if (!modoRelojActivo) return;
+            const ahora = new Date();
+            let horas = ahora.getHours();
+            let minutos = ahora.getMinutes();
+
+            // Formato 12 horas o 24 horas (aquÃ­ usamos 12h estÃ©tico tipo iOS)
+            horas = horas % 12 || 12;
+            let minStr = minutos < 10 ? '0' + minutos : '' + minutos;
+
+            digitH.textContent = horas;
+            digitM1.textContent = minStr.charAt(0);
+            digitM2.textContent = minStr.charAt(1);
+
+            setTimeout(actualizarHoraReloj, 1000);
+        }
+
+        // --- INTERACCIÃ“N TÃCTIL ---
+        function registrarInteraccion() {
+            activarPantallaCompleta();
+
+            // Si estaba en modo curioso o en modo reloj, restaurar pantalla normal
+            if (modoCuriosoActivo || modoRelojActivo) {
+                modoCuriosoActivo = false;
+                modoRelojActivo = false;
+                clearTimeout(temporizadorEsquina);
+
+                clockContainer.style.display = 'none';
+                faceContainer.style.display = 'flex';
+                eyesRow.style.transform = 'translate(0px, 0px)';
+                
+                enviarAccion('centro_bloqueado'); // Mantiene cabeza firme al centro para no tambalear el telÃ©fono
+                statusEl.textContent = 'InteracciÃ³n detectada';
             }
 
-            // Programar el siguiente movimiento
-            setTimeout(cicloAutonomo, tiempoEstancia);
+            // Reiniciar ambos temporizadores de inactividad
+            clearTimeout(timerInactividad30s);
+            clearTimeout(timerReloj1min);
+
+            timerInactividad30s = setTimeout(iniciarModoCurioso, 30000); // 30 segundos -> Curioso
+            timerReloj1min = setTimeout(iniciarModoReloj, 60000);       // 60 segundos -> Reloj digital
         }
 
         function iniciarSistema() {
             document.getElementById('start-screen').style.display = 'none';
             activarPantallaCompleta();
             conectarMqtt();
-            
-            // Arrancar el ciclo autÃ³nomo principal tras 2 segundos
-            setTimeout(cicloAutonomo, 2000);
+
+            eyesRow.style.transform = 'translate(0px, 0px)';
+            enviarAccion('centro');
+
+            // Arrancar temporizadores
+            timerInactividad30s = setTimeout(iniciarModoCurioso, 30000);
+            timerReloj1min = setTimeout(iniciarModoReloj, 60000);
         }
     </script>
 </body>
