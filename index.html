@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - iOS Massive Clock & Expanded Face</title>
+    <title>Edy - iOS Massive Clock & Horizontal Face</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -81,13 +81,14 @@
             color: #000;
         }
 
-        /* Contenedor del rostro ampliado a toda la pantalla para mayor espacio de recorrido */
+        /* Contenedor del rostro rotado a 90 grados para que los ojos queden horizontales en el telÃ©fono acostado */
         .face-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 100vw;
-            height: 100vh;
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(90deg);
             position: absolute;
             background-color: #000000;
         }
@@ -96,7 +97,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 130px; /* SeparaciÃ³n inicial entre los ojos */
+            gap: 130px;
             transition: transform 0.9s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
@@ -217,7 +218,7 @@
     <!-- BotÃ³n directo para forzar el modo reloj al instante -->
     <button id="btn-forzar-reloj" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
 
-    <!-- Rostro normal / curioso con mayor Ã¡rea de recorrido -->
+    <!-- Rostro horizontal con amplio rango de recorrido -->
     <div class="face-container" id="face" onclick="registrarInteraccion()">
         <div class="eyes-row" id="eyes-row">
             <div class="eye"></div>
@@ -311,7 +312,6 @@
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
-        // Posiciones con rango de movimiento mucho mÃ¡s amplio hacia las esquinas
         const posiciones = [
             { nombre: 'centro', x: 0,   y: 0 },
             { nombre: 'arriba_izq', x: -110, y: -65 },
