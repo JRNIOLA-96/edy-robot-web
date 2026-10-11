@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - iOS Massive Clock Fullscreen</title>
+    <title>Edy - iOS Massive Clock Horizontal</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -116,21 +116,22 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ iOS EXPANDIDO A TODA LA PANTALLA --- */
+        /* --- RELOJ iOS HORIZONTAL ADAPTADO A PANTALLA COMPLETA --- */
         #clock-container {
             position: absolute;
             display: none;
             justify-content: center;
             align-items: center;
-            width: 100vw;
-            height: 100vh;
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(90deg);
             z-index: 50;
             background-color: #000000;
         }
 
         .ios-clock {
             font-family: 'Fredoka', sans-serif;
-            font-size: min(48vw, 78vh); 
+            font-size: min(48vh, 78vw); 
             font-weight: 700;
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -153,11 +154,11 @@
             display: flex;
             align-items: center;
             justify-self: end;
-            margin-right: 3vw;
+            margin-right: 3vh;
         }
 
         #h1 { color: #ff69b4; z-index: 1; } 
-        #h2 { color: #ff69b4; margin-left: -5vw; z-index: 2; } 
+        #h2 { color: #ff69b4; margin-left: -5vh; z-index: 2; } 
         
         /* 2. Columna de Puntos Centrales Fijos */
         .separator {
@@ -175,26 +176,26 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            width: min(12vw, 12vh);  
-            height: min(12vw, 12vh); 
+            width: min(12vh, 12vw);  
+            height: min(12vh, 12vw); 
             background-color: #8e8e93;
             border-radius: 50%;
             animation: pulseDot 2s infinite ease-in-out;
         }
 
-        .dot:nth-child(1) { top: -22vh; }
-        .dot:nth-child(2) { top: 12vh; }
+        .dot:nth-child(1) { top: -22vw; }
+        .dot:nth-child(2) { top: 12vw; }
 
         /* 3. Columna de Minutos */
         .minutes-container {
             display: flex;
             align-items: center;
             justify-self: start;
-            margin-left: 3vw;
+            margin-left: 3vh;
         }
 
         #m1 { color: #b19cd9; z-index: 1; } 
-        #m2 { color: #da70d6; margin-left: -5vw; z-index: 2; } 
+        #m2 { color: #da70d6; margin-left: -5vh; z-index: 2; } 
 
         @keyframes pulseDot {
             0%, 100% { opacity: 0.3; }
@@ -223,7 +224,7 @@
         </div>
     </div>
 
-    <!-- Pantalla de Reloj Definitiva a Pantalla Completa Real -->
+    <!-- Pantalla de Reloj Horizontal Definitiva -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="ios-clock">
             <!-- Horas -->
@@ -343,7 +344,7 @@
 
             faceContainer.style.display = 'none';
             clockContainer.style.display = 'flex';
-            statusEl.textContent = 'Modo Reloj Fullscreen';
+            statusEl.textContent = 'Modo Reloj Horizontal';
 
             enviarAccion('centro_bloqueado');
             actualizarHoraReloj();
