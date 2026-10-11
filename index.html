@@ -73,6 +73,8 @@
             justify-content: center;
             align-items: center;
             gap: 110px;
+            /* TransiciÃ³n suave y fluida para que los ojos se deslizen hacia las esquinas */
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         /* Ojos grandes, limpios y con brillo OLED estilo LOOI */
@@ -104,7 +106,7 @@
     <div id="status">Desconectado</div>
 
     <div class="face-container" id="face">
-        <div class="eyes-row">
+        <div class="eyes-row" id="eyes-row">
             <div class="eye"></div>
             <div class="eye"></div>
         </div>
@@ -113,6 +115,7 @@
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script>
         const statusEl = document.getElementById('status');
+        const eyesRow = document.getElementById('eyes-row');
         const MQTT_URL = 'wss://broker.hivemq.com:8884/mqtt';
         const MQTT_ACTION_TOPIC = 'edy/jordan/robot01/accion';
         let mqttClient = null;
@@ -124,7 +127,7 @@
             mqttClient = mqtt.connect(MQTT_URL, { clientId, clean: true, reconnectPeriod: 3000 });
             mqttClient.on('connect', () => { 
                 mqttConectado = true; 
-                statusEl.textContent = 'Edy en lÃ­nea (Modo autÃ³nomo)'; 
+                statusEl.textContent = 'Edy en lÃ­nea (Mirada casual)'; 
             });
         }
 
@@ -142,18 +145,41 @@
             if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
         }
 
-        // Bucle autÃ³nomo casual: envÃ­a la seÃ±al de movimiento relajado cada cierto tiempo aleatorio
+        // Lista de esquinas posibles en coordenadas X e Y (en pÃ­xeles)
+        const esquinas = [
+            { x: -45, y: -30 }, // Esquina Superior Izquierda
+            { x:  45, y: -30 }, // Esquina Superior Derecha
+            { x: -45, y:  30 }, // Esquina Inferior Izquierda
+            { x:  45, y:  30 }  // Esquina Inferior Derecha
+        ];
+
+        // Bucle autÃ³nomo: mira a una esquina durante 4 segundos y luego regresa al centro
         function bucleCasual() {
+            // 1. Elegir una esquina aleatoria
+            const esquinaAleatoria = esquinas[Math.floor(Math.random() * esquinas.length)];
+            
+            // 2. Mover los ojos a la esquina y enviar orden fÃ­sica al ESP32
+            eyesRow.style.transform = `translate(${esquinaAleatoria.x}px, ${esquinaAleatoria.y}px)`;
             enviarAccion('casual');
-            let tiempoAleatorio = Math.floor(Math.random() * (10000 - 4000 + 1)) + 4000;
-            setTimeout(bucleCasual, tiempoAleatorio);
+
+            // 3. Mantener la mirada en la esquina durante exactamente 4 segundos
+            setTimeout(() => {
+                // Regresar los ojos al centro
+                eyesRow.style.transform = 'translate(0px, 0px)';
+            }, 4000);
+
+            // Programar el siguiente movimiento casual aleatorio (entre 8 y 15 segundos despuÃ©s)
+            let proximoIntervalo = Math.floor(Math.random() * (15000 - 8000 + 1)) + 8000;
+            setTimeout(bucleCasual, proximoIntervalo);
         }
 
         function iniciarSistema() {
             document.getElementById('start-screen').style.display = 'none';
             activarPantallaCompleta();
             conectarMqtt();
-            bucleCasual(); // Empieza el ciclo de movimientos casuales
+            
+            // Iniciar el ciclo de miradas a las esquinas tras 2 segundos
+            setTimeout(bucleCasual, 2000);
         }
     </script>
 </body>
