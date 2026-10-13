@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - Modo Seguimiento Facial</title>
+    <title>Edy - Monitor de Seguimiento Facial</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     
-    <!-- LibrerÃ­as de TensorFlow.js y BlazeFace para el reconocimiento facial -->
+    <!-- LibrerÃ­as de TensorFlow.js y BlazeFace -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
@@ -61,12 +61,29 @@
             position: absolute;
             left: 14px;
             bottom: 12px;
-            color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.5);
             font-size: 11px;
-            z-index: 20;
+            z-index: 100;
         }
 
-        /* Contenedor de botones de control rÃ¡pido en esquina inferior derecha */
+        /* Panel de depuraciÃ³n visual para el seguimiento */
+        #debug-panel {
+            position: absolute;
+            left: 14px;
+            top: 14px;
+            background-color: rgba(0, 0, 0, 0.75);
+            border: 1px solid #ff69b4;
+            color: #d1f7ff;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-family: monospace;
+            border-radius: 8px;
+            z-index: 100;
+            display: none;
+            pointer-events: none;
+        }
+
+        /* Controles en esquina inferior derecha */
         .controls-corner {
             position: absolute;
             right: 14px;
@@ -93,7 +110,27 @@
             color: #000;
         }
 
-        /* Rostro horizontal con amplio rango de recorrido */
+        /* Contenedor de la cÃ¡mara en pantalla (reemplaza a los ojos en modo seguimiento) */
+        #camera-container {
+            position: absolute;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(90deg);
+            z-index: 40;
+            background-color: #000;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        /* Rostro horizontal normal */
         .face-container {
             display: flex;
             justify-content: center;
@@ -129,7 +166,7 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ iOS HORIZONTAL OPTIMIZADO --- */
+        /* --- RELOJ iOS --- */
         #clock-container {
             position: absolute;
             display: none;
@@ -224,14 +261,19 @@
 
     <div id="status">Desconectado</div>
 
-    <!-- Botones de Acceso RÃ¡pido -->
+    <!-- Panel de depuraciÃ³n con la acciÃ³n en vivo -->
+    <div id="debug-panel">Estado: <span id="debug-estado">Inactivo</span><br>Comando: <span id="debug-cmd">---</span></div>
+
+    <!-- Botones rÃ¡pidos -->
     <div class="controls-corner">
         <button class="btn-accion" id="btn-seguimiento" onclick="event.stopPropagation(); toggleModoSeguimiento();">Seguimiento</button>
         <button class="btn-accion" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
     </div>
 
-    <!-- Video oculto para procesar la cÃ¡mara frontal -->
-    <video id="webcam" autoplay playsinline style="display:none;"></video>
+    <!-- Contenedor de la cÃ¡mara en vivo para supervisiÃ³n -->
+    <div id="camera-container">
+        <video id="webcam" autoplay playsinline></video>
+    </div>
 
     <!-- Rostro horizontal -->
     <div class="face-container" id="face" onclick="registrarInteraccion()">
@@ -241,7 +283,7 @@
         </div>
     </div>
 
-    <!-- Pantalla de Reloj Horizontal -->
+    <!-- Pantalla de Reloj -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="ios-clock">
             <div class="hours-container">
@@ -265,8 +307,12 @@
         const eyesRow = document.getElementById('eyes-row');
         const faceContainer = document.getElementById('face');
         const clockContainer = document.getElementById('clock-container');
+        const cameraContainer = document.getElementById('camera-container');
         const btnSeguimiento = document.getElementById('btn-seguimiento');
         const videoElement = document.getElementById('webcam');
+        const debugEstado = document.getElementById('debug-estado');
+        const debugCmd = document.getElementById('debug-cmd');
+        const debugPanel = document.getElementById('debug-panel');
         
         const h1El = document.getElementById('h1');
         const h2El = document.getElementById('h2');
@@ -313,6 +359,7 @@
         }
 
         async function enviarAccion(tipo) {
+            debugCmd.textContent = tipo;
             if (mqttConectado && mqttClient) { 
                 mqttClient.publish(MQTT_ACTION_TOPIC, tipo); 
                 return; 
@@ -354,12 +401,14 @@
         }
 
         function iniciarModoReloj() {
-            if (modoSeguimientoActivo) return; // No interrumpir seguimiento
+            if (modoSeguimientoActivo) return;
             modoCuriosoActivo = false;
             clearTimeout(temporizadorEsquina);
             modoRelojActivo = true;
 
             faceContainer.style.display = 'none';
+            cameraContainer.style.display = 'none';
+            debugPanel.style.display = 'none';
             clockContainer.style.display = 'flex';
             statusEl.textContent = 'Modo Reloj';
 
@@ -368,21 +417,22 @@
         }
 
         function forzarModoRelojManual() {
-            if (modoSeguimientoActivo) toggleModoSeguimiento(); // Desactivar seguimiento si estÃ¡ activo
+            if (modoSeguimientoActivo) toggleModoSeguimiento();
             clearTimeout(timerInactividad30s);
             clearTimeout(timerReloj1min);
             iniciarModoReloj();
         }
 
-        /* --- CONTROL DEL MODO SEGUIMIENTO FACIAL --- */
+        /* --- CONTROL DEL MODO SEGUIMIENTO CON MONITOR DE CÃMARA --- */
         async function toggleModoSeguimiento() {
             modoSeguimientoActivo = !modoSeguimientoActivo;
 
             if (modoSeguimientoActivo) {
                 btnSeguimiento.classList.add('activo');
-                statusEl.textContent = 'Iniciando cÃ¡mara y IA...';
-                
-                // Asegurar que estamos en modo rostro normal y cancelar temporizadores de inactividad
+                statusEl.textContent = 'Iniciando cÃ¡mara...';
+                debugPanel.style.display = 'block';
+                debugEstado.textContent = 'Cargando IA...';
+
                 modoRelojActivo = false;
                 modoCuriosoActivo = false;
                 clearTimeout(temporizadorEsquina);
@@ -390,8 +440,8 @@
                 clearTimeout(timerReloj1min);
 
                 clockContainer.style.display = 'none';
-                faceContainer.style.display = 'flex';
-                eyesRow.style.transform = 'translate(0px, 0px)';
+                faceContainer.style.display = 'none';
+                cameraContainer.style.display = 'flex'; // Mostramos la cÃ¡mara en pantalla
 
                 if (!aiModel) {
                     try {
@@ -402,20 +452,26 @@
                         videoElement.srcObject = stream;
                         await new Promise((resolve) => { videoElement.onloadedmetadata = () => { resolve(); }; });
                     } catch (err) {
-                        statusEl.textContent = 'Error al acceder a la cÃ¡mara';
+                        statusEl.textContent = 'Error de cÃ¡mara';
+                        debugEstado.textContent = 'Error';
                         modoSeguimientoActivo = false;
                         btnSeguimiento.classList.remove('activo');
+                        cameraContainer.style.display = 'none';
+                        faceContainer.style.display = 'flex';
                         return;
                     }
                 }
-                statusEl.textContent = 'Modo Seguimiento Activo';
+                statusEl.textContent = 'Monitoreando rostro...';
                 bucleSeguimientoFacial();
 
             } else {
                 btnSeguimiento.classList.remove('activo');
                 statusEl.textContent = 'Seguimiento desactivado';
+                debugPanel.style.display = 'none';
+                cameraContainer.style.display = 'none';
+                faceContainer.style.display = 'flex';
                 enviarAccion('detener_robot');
-                registrarInteraccion(); // Reiniciar temporizadores normales
+                registrarInteraccion();
             }
         }
 
@@ -434,7 +490,8 @@
                     const videoWidth = videoElement.videoWidth || 320;
                     const errorX = centerX - (videoWidth / 2);
 
-                    // Margen de tolerancia para centrado (evita vibraciones)
+                    debugEstado.textContent = `Rostro detectado (X: ${Math.round(errorX)})`;
+
                     if (errorX > 45) {
                         enviarAccion('girar_derecha');
                     } else if (errorX < -45) {
@@ -443,12 +500,13 @@
                         enviarAccion('centrado_x');
                     }
                 } else {
-                    // Si pierde de vista el rostro, detener motores
+                    debugEstado.textContent = 'Buscando rostro...';
                     enviarAccion('detener_robot');
                 }
-            } catch (e) {}
+            } catch (e) {
+                debugEstado.textContent = 'Error en anÃ¡lisis';
+            }
 
-            // Escanear fotogramas continuamente cada 150ms
             if (modoSeguimientoActivo) {
                 setTimeout(bucleSeguimientoFacial, 150);
             }
@@ -497,7 +555,7 @@
         }
 
         function registrarInteraccion() {
-            if (modoSeguimientoActivo) return; // No interrumpir si el seguimiento estÃ¡ encendido
+            if (modoSeguimientoActivo) return; 
             activarPantallaCompleta();
             solicitarWakeLock();
 
@@ -507,6 +565,7 @@
                 clearTimeout(temporizadorEsquina);
 
                 clockContainer.style.display = 'none';
+                cameraContainer.style.display = 'none';
                 faceContainer.style.display = 'flex';
                 eyesRow.style.transform = 'translate(0px, 0px)';
                 
