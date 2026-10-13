@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - Monitor de Seguimiento Facial</title>
+    <title>Edy - Monitor de Seguimiento Rotado</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     
@@ -66,21 +66,22 @@
             z-index: 100;
         }
 
-        /* Panel de depuraciÃ³n visual para el seguimiento */
+        /* Panel de depuraciÃ³n visual ampliado para mostrar los servos */
         #debug-panel {
             position: absolute;
             left: 14px;
             top: 14px;
-            background-color: rgba(0, 0, 0, 0.75);
+            background-color: rgba(0, 0, 0, 0.85);
             border: 1px solid #ff69b4;
             color: #d1f7ff;
-            padding: 8px 14px;
-            font-size: 13px;
+            padding: 10px 14px;
+            font-size: 12px;
             font-family: monospace;
             border-radius: 8px;
             z-index: 100;
             display: none;
             pointer-events: none;
+            line-height: 1.4;
         }
 
         /* Controles en esquina inferior derecha */
@@ -110,7 +111,7 @@
             color: #000;
         }
 
-        /* Contenedor de la cÃ¡mara en pantalla (reemplaza a los ojos en modo seguimiento) */
+        /* Contenedor de la cÃ¡mara rotado a 90 grados para que encaje horizontalmente */
         #camera-container {
             position: absolute;
             display: none;
@@ -127,10 +128,9 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 10px;
         }
 
-        /* Rostro horizontal normal */
+        /* Rostro horizontal */
         .face-container {
             display: flex;
             justify-content: center;
@@ -261,8 +261,13 @@
 
     <div id="status">Desconectado</div>
 
-    <!-- Panel de depuraciÃ³n con la acciÃ³n en vivo -->
-    <div id="debug-panel">Estado: <span id="debug-estado">Inactivo</span><br>Comando: <span id="debug-cmd">---</span></div>
+    <!-- Panel de depuraciÃ³n en vivo indicando estado, comando y servo activo -->
+    <div id="debug-panel">
+        Estado: <span id="debug-estado">Inactivo</span><br>
+        Comando: <span id="debug-cmd">---</span><br>
+        Servo Izq: <span id="servo-izq">Detenido (90Â°)</span><br>
+        Servo Der: <span id="servo-der">Detenido (90Â°)</span>
+    </div>
 
     <!-- Botones rÃ¡pidos -->
     <div class="controls-corner">
@@ -270,7 +275,7 @@
         <button class="btn-accion" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
     </div>
 
-    <!-- Contenedor de la cÃ¡mara en vivo para supervisiÃ³n -->
+    <!-- Contenedor de la cÃ¡mara rotado horizontalmente -->
     <div id="camera-container">
         <video id="webcam" autoplay playsinline></video>
     </div>
@@ -313,6 +318,8 @@
         const debugEstado = document.getElementById('debug-estado');
         const debugCmd = document.getElementById('debug-cmd');
         const debugPanel = document.getElementById('debug-panel');
+        const servoIzqText = document.getElementById('servo-izq');
+        const servoDerText = document.getElementById('servo-der');
         
         const h1El = document.getElementById('h1');
         const h2El = document.getElementById('h2');
@@ -358,8 +365,23 @@
             });
         }
 
+        function actualizarInfoServos(accion) {
+            if (accion === "girar_derecha") {
+                servoIzqText.textContent = "Avanzando (180Â°)";
+                servoDerText.textContent = "Retrocediendo (0Â°)";
+            } else if (accion === "girar_izquierda") {
+                servoIzqText.textContent = "Retrocediendo (0Â°)";
+                servoDerText.textContent = "Avanzando (180Â°)";
+            } else {
+                servoIzqText.textContent = "Detenido (90Â°)";
+                servoDerText.textContent = "Detenido (90Â°)";
+            }
+        }
+
         async function enviarAccion(tipo) {
             debugCmd.textContent = tipo;
+            actualizarInfoServos(tipo);
+
             if (mqttConectado && mqttClient) { 
                 mqttClient.publish(MQTT_ACTION_TOPIC, tipo); 
                 return; 
@@ -423,7 +445,6 @@
             iniciarModoReloj();
         }
 
-        /* --- CONTROL DEL MODO SEGUIMIENTO CON MONITOR DE CÃMARA --- */
         async function toggleModoSeguimiento() {
             modoSeguimientoActivo = !modoSeguimientoActivo;
 
@@ -441,7 +462,7 @@
 
                 clockContainer.style.display = 'none';
                 faceContainer.style.display = 'none';
-                cameraContainer.style.display = 'flex'; // Mostramos la cÃ¡mara en pantalla
+                cameraContainer.style.display = 'flex'; // Muestra la cÃ¡mara rotada correctamente
 
                 if (!aiModel) {
                     try {
