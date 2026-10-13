@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - Seguimiento con Zona Muerta</title>
-    <!-- Importamos la fuente Fredoka redondeada -->
+    <title>Edy - Test de Motores y CÃ¡mara</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     
-    <!-- LibrerÃ­as de TensorFlow.js y BlazeFace -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
@@ -83,6 +81,52 @@
             line-height: 1.4;
         }
 
+        /* Panel de control de testing para los motores (esquina superior derecha) */
+        #test-motors-panel {
+            position: absolute;
+            right: 14px;
+            top: 14px;
+            background-color: rgba(0, 0, 0, 0.85);
+            border: 1px solid #00ffff;
+            color: #d1f7ff;
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .motor-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .motor-btns {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-motor {
+            background-color: rgba(0, 255, 255, 0.2);
+            color: #00ffff;
+            border: 1px solid #00ffff;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .btn-motor:active {
+            background-color: #00ffff;
+            color: #000;
+        }
+
         .controls-corner {
             position: absolute;
             right: 14px;
@@ -109,14 +153,15 @@
             color: #000;
         }
 
-        /* Contenedor de la cÃ¡mara corregido a orientaciÃ³n horizontal natural */
+        /* Contenedor de la cÃ¡mara corregido con rotaciÃ³n compensada de 90 grados para horizontal */
         #camera-container {
             position: absolute;
             display: none;
             justify-content: center;
             align-items: center;
-            width: 100vw;
-            height: 100vh;
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(90deg);
             z-index: 40;
             background-color: #000;
         }
@@ -125,10 +170,9 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1); /* Espejo para que sea natural al verte */
+            transform: scaleX(-1);
         }
 
-        /* Indicador visual de la zona muerta central en pantalla */
         #deadzone-box {
             position: absolute;
             width: 120px;
@@ -269,7 +313,6 @@
 
     <div id="status">Desconectado</div>
 
-    <!-- Panel de depuraciÃ³n -->
     <div id="debug-panel">
         Estado: <span id="debug-estado">Inactivo</span><br>
         Comando: <span id="debug-cmd">---</span><br>
@@ -277,12 +320,29 @@
         Servo Der: <span id="servo-der">Detenido (90Â°)</span>
     </div>
 
+    <!-- Panel de Testeo Manual de Motores -->
+    <div id="test-motors-panel">
+        <div class="motor-group">
+            <span>Rueda Izquierda (Pin 13)</span>
+            <div class="motor-btns">
+                <button class="btn-motor" onmousedown="enviarAccion('test_izq_avanzar')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_izq_avanzar')" ontouchend="enviarAccion('detener_robot')">â¬…ï¸ Avanzar</button>
+                <button class="btn-motor" onmousedown="enviarAccion('test_izq_retroceder')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_izq_retroceder')" ontouchend="enviarAccion('detener_robot')">Retroceder âž¡ï¸</button>
+            </div>
+        </div>
+        <div class="motor-group">
+            <span>Rueda Derecha (Pin 12)</span>
+            <div class="motor-btns">
+                <button class="btn-motor" onmousedown="enviarAccion('test_der_avanzar')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_der_avanzar')" ontouchend="enviarAccion('detener_robot')">â¬…ï¸ Avanzar</button>
+                <button class="btn-motor" onmousedown="enviarAccion('test_der_retroceder')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_der_retroceder')" ontouchend="enviarAccion('detener_robot')">Retroceder âž¡ï¸</button>
+            </div>
+        </div>
+    </div>
+
     <div class="controls-corner">
         <button class="btn-accion" id="btn-seguimiento" onclick="event.stopPropagation(); toggleModoSeguimiento();">Seguimiento</button>
         <button class="btn-accion" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
     </div>
 
-    <!-- CÃ¡mara y zona muerta -->
     <div id="camera-container">
         <div id="deadzone-box"></div>
         <video id="webcam" autoplay playsinline></video>
@@ -320,6 +380,7 @@
         const clockContainer = document.getElementById('clock-container');
         const cameraContainer = document.getElementById('camera-container');
         const deadzoneBox = document.getElementById('deadzone-box');
+        const testMotorsPanel = document.getElementById('test-motors-panel');
         const btnSeguimiento = document.getElementById('btn-seguimiento');
         const videoElement = document.getElementById('webcam');
         const debugEstado = document.getElementById('debug-estado');
@@ -379,6 +440,14 @@
             } else if (accion === "girar_izquierda") {
                 servoIzqText.textContent = "Retrocediendo (0Â°)";
                 servoDerText.textContent = "Avanzando (180Â°)";
+            } else if (accion === "test_izq_avanzar") {
+                servoIzqText.textContent = "Test Avanzar (180Â°)";
+            } else if (accion === "test_izq_retroceder") {
+                servoIzqText.textContent = "Test Retroceder (0Â°)";
+            } else if (accion === "test_der_avanzar") {
+                servoDerText.textContent = "Test Avanzar (0Â°)";
+            } else if (accion === "test_der_retroceder") {
+                servoDerText.textContent = "Test Retroceder (180Â°)";
             } else {
                 servoIzqText.textContent = "Detenido (90Â°)";
                 servoDerText.textContent = "Detenido (90Â°)";
@@ -439,6 +508,7 @@
             cameraContainer.style.display = 'none';
             deadzoneBox.style.display = 'none';
             debugPanel.style.display = 'none';
+            testMotorsPanel.style.display = 'none';
             clockContainer.style.display = 'flex';
             statusEl.textContent = 'Modo Reloj';
 
@@ -460,6 +530,7 @@
                 btnSeguimiento.classList.add('activo');
                 statusEl.textContent = 'Iniciando cÃ¡mara...';
                 debugPanel.style.display = 'block';
+                testMotorsPanel.style.display = 'flex'; // Muestra los botones de testing de motores
                 debugEstado.textContent = 'Cargando IA...';
 
                 modoRelojActivo = false;
@@ -471,7 +542,7 @@
                 clockContainer.style.display = 'none';
                 faceContainer.style.display = 'none';
                 cameraContainer.style.display = 'flex';
-                deadzoneBox.style.display = 'block'; // Muestra el cuadro de tolerancia central
+                deadzoneBox.style.display = 'block';
 
                 if (!aiModel) {
                     try {
@@ -488,6 +559,7 @@
                         btnSeguimiento.classList.remove('activo');
                         cameraContainer.style.display = 'none';
                         deadzoneBox.style.display = 'none';
+                        testMotorsPanel.style.display = 'none';
                         faceContainer.style.display = 'flex';
                         return;
                     }
@@ -499,6 +571,7 @@
                 btnSeguimiento.classList.remove('activo');
                 statusEl.textContent = 'Seguimiento desactivado';
                 debugPanel.style.display = 'none';
+                testMotorsPanel.style.display = 'none';
                 cameraContainer.style.display = 'none';
                 deadzoneBox.style.display = 'none';
                 faceContainer.style.display = 'flex';
@@ -524,8 +597,6 @@
 
                     debugEstado.textContent = `Rostro detectado (X: ${Math.round(errorX)})`;
 
-                    // --- ZONA MUERTA (DEADZONE) ---
-                    // Si el rostro estÃ¡ dentro de un margen central de +/- 90 pÃ­xeles, el robot no se mueve (evita movimientos bruscos)
                     const umbralTolerancia = 90;
 
                     if (errorX > umbralTolerancia) {
@@ -603,6 +674,7 @@
                 clockContainer.style.display = 'none';
                 cameraContainer.style.display = 'none';
                 deadzoneBox.style.display = 'none';
+                testMotorsPanel.style.display = 'none';
                 faceContainer.style.display = 'flex';
                 eyesRow.style.transform = 'translate(0px, 0px)';
                 
