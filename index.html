@@ -3,9 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - iOS Massive Clock & Smooth Colors</title>
+    <title>Edy - Modo Seguimiento Facial</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- LibrerÃ­as de TensorFlow.js y BlazeFace para el reconocimiento facial -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+
     <style>
         body, html {
             margin: 0;
@@ -59,11 +66,17 @@
             z-index: 20;
         }
 
-        /* BotÃ³n flotante rÃ¡pido para saltar al reloj al instante */
-        #btn-forzar-reloj {
+        /* Contenedor de botones de control rÃ¡pido en esquina inferior derecha */
+        .controls-corner {
             position: absolute;
             right: 14px;
             bottom: 12px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .btn-accion {
             background-color: rgba(255, 105, 180, 0.2);
             color: #ff69b4;
             border: 1px solid #ff69b4;
@@ -72,16 +85,15 @@
             font-weight: 700;
             border-radius: 15px;
             cursor: pointer;
-            z-index: 100;
             outline: none;
         }
 
-        #btn-forzar-reloj:active {
+        .btn-accion:active, .btn-accion.activo {
             background-color: #ff69b4;
             color: #000;
         }
 
-        /* Contenedor del rostro rotado a 90 grados */
+        /* Rostro horizontal con amplio rango de recorrido */
         .face-container {
             display: flex;
             justify-content: center;
@@ -117,7 +129,7 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ iOS HORIZONTAL CON TRANSICIÃ“N DE COLOR FLUIDA --- */
+        /* --- RELOJ iOS HORIZONTAL OPTIMIZADO --- */
         #clock-container {
             position: absolute;
             display: none;
@@ -146,13 +158,11 @@
 
         .digit-box {
             display: inline-block;
-            /* TransiciÃ³n suave tambiÃ©n para el color y la rotaciÃ³n */
             transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), color 2s ease-in-out;
             -webkit-text-stroke: 1.5px currentColor; 
             transform: scaleX(0.92);
         }
 
-        /* 1. Columna de Horas */
         .hours-container {
             display: flex;
             align-items: center;
@@ -163,7 +173,6 @@
         #h1 { z-index: 1; } 
         #h2 { margin-left: -5vh; z-index: 2; } 
         
-        /* 2. Columna de Puntos Centrales Fijos */
         .separator {
             position: relative;
             width: 0px; 
@@ -189,7 +198,6 @@
         .dot:nth-child(1) { top: -24vw; }
         .dot:nth-child(2) { top: 13vw; }
 
-        /* 3. Columna de Minutos */
         .minutes-container {
             display: flex;
             align-items: center;
@@ -216,10 +224,16 @@
 
     <div id="status">Desconectado</div>
 
-    <!-- BotÃ³n directo para forzar el modo reloj al instante -->
-    <button id="btn-forzar-reloj" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
+    <!-- Botones de Acceso RÃ¡pido -->
+    <div class="controls-corner">
+        <button class="btn-accion" id="btn-seguimiento" onclick="event.stopPropagation(); toggleModoSeguimiento();">Seguimiento</button>
+        <button class="btn-accion" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
+    </div>
 
-    <!-- Rostro horizontal con amplio rango de recorrido -->
+    <!-- Video oculto para procesar la cÃ¡mara frontal -->
+    <video id="webcam" autoplay playsinline style="display:none;"></video>
+
+    <!-- Rostro horizontal -->
     <div class="face-container" id="face" onclick="registrarInteraccion()">
         <div class="eyes-row" id="eyes-row">
             <div class="eye"></div>
@@ -227,22 +241,17 @@
         </div>
     </div>
 
-    <!-- Pantalla de Reloj Horizontal Optimizada -->
+    <!-- Pantalla de Reloj Horizontal -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="ios-clock">
-            <!-- Horas -->
             <div class="hours-container">
                 <span class="digit-box" id="box-h1"><span id="h1">0</span></span>
                 <span class="digit-box" id="box-h2"><span id="h2">0</span></span>
             </div>
-
-            <!-- Puntos -->
             <div class="separator" id="box-sep">
                 <div class="dot"></div>
                 <div class="dot"></div>
             </div>
-
-            <!-- Minutos -->
             <div class="minutes-container">
                 <span class="digit-box" id="box-m1"><span id="m1">0</span></span>
                 <span class="digit-box" id="box-m2"><span id="m2">0</span></span>
@@ -256,6 +265,8 @@
         const eyesRow = document.getElementById('eyes-row');
         const faceContainer = document.getElementById('face');
         const clockContainer = document.getElementById('clock-container');
+        const btnSeguimiento = document.getElementById('btn-seguimiento');
+        const videoElement = document.getElementById('webcam');
         
         const h1El = document.getElementById('h1');
         const h2El = document.getElementById('h2');
@@ -277,6 +288,8 @@
         let temporizadorEsquina = null;
         let modoCuriosoActivo = false;
         let modoRelojActivo = false;
+        let modoSeguimientoActivo = false;
+        let aiModel = null;
         let wakeLock = null;
 
         const ultimasRotaciones = { h1: null, h2: null, m1: null, m2: null };
@@ -322,14 +335,14 @@
         ];
 
         function iniciarModoCurioso() {
-            if (modoRelojActivo) return;
+            if (modoRelojActivo || modoSeguimientoActivo) return;
             modoCuriosoActivo = true;
             statusEl.textContent = 'Edy curioso...';
             bucleCurioso();
         }
 
         function bucleCurioso() {
-            if (!modoCuriosoActivo || modoRelojActivo) return;
+            if (!modoCuriosoActivo || modoRelojActivo || modoSeguimientoActivo) return;
             let proximoIndex = Math.floor(Math.random() * 4) + 1;
             let destino = posiciones[proximoIndex];
 
@@ -341,22 +354,104 @@
         }
 
         function iniciarModoReloj() {
+            if (modoSeguimientoActivo) return; // No interrumpir seguimiento
             modoCuriosoActivo = false;
             clearTimeout(temporizadorEsquina);
             modoRelojActivo = true;
 
             faceContainer.style.display = 'none';
             clockContainer.style.display = 'flex';
-            statusEl.textContent = 'Modo Reloj CromÃ¡tico';
+            statusEl.textContent = 'Modo Reloj';
 
             enviarAccion('centro_bloqueado');
             actualizarHoraReloj();
         }
 
         function forzarModoRelojManual() {
+            if (modoSeguimientoActivo) toggleModoSeguimiento(); // Desactivar seguimiento si estÃ¡ activo
             clearTimeout(timerInactividad30s);
             clearTimeout(timerReloj1min);
             iniciarModoReloj();
+        }
+
+        /* --- CONTROL DEL MODO SEGUIMIENTO FACIAL --- */
+        async function toggleModoSeguimiento() {
+            modoSeguimientoActivo = !modoSeguimientoActivo;
+
+            if (modoSeguimientoActivo) {
+                btnSeguimiento.classList.add('activo');
+                statusEl.textContent = 'Iniciando cÃ¡mara y IA...';
+                
+                // Asegurar que estamos en modo rostro normal y cancelar temporizadores de inactividad
+                modoRelojActivo = false;
+                modoCuriosoActivo = false;
+                clearTimeout(temporizadorEsquina);
+                clearTimeout(timerInactividad30s);
+                clearTimeout(timerReloj1min);
+
+                clockContainer.style.display = 'none';
+                faceContainer.style.display = 'flex';
+                eyesRow.style.transform = 'translate(0px, 0px)';
+
+                if (!aiModel) {
+                    try {
+                        aiModel = await blazeface.load();
+                        const stream = await navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: "user", width: 320, height: 240 }
+                        });
+                        videoElement.srcObject = stream;
+                        await new Promise((resolve) => { videoElement.onloadedmetadata = () => { resolve(); }; });
+                    } catch (err) {
+                        statusEl.textContent = 'Error al acceder a la cÃ¡mara';
+                        modoSeguimientoActivo = false;
+                        btnSeguimiento.classList.remove('activo');
+                        return;
+                    }
+                }
+                statusEl.textContent = 'Modo Seguimiento Activo';
+                bucleSeguimientoFacial();
+
+            } else {
+                btnSeguimiento.classList.remove('activo');
+                statusEl.textContent = 'Seguimiento desactivado';
+                enviarAccion('detener_robot');
+                registrarInteraccion(); // Reiniciar temporizadores normales
+            }
+        }
+
+        async function bucleSeguimientoFacial() {
+            if (!modoSeguimientoActivo || !aiModel) return;
+
+            try {
+                const predictions = await aiModel.estimateFaces(videoElement, false);
+
+                if (predictions.length > 0) {
+                    const face = predictions[0];
+                    const start = face.topLeft;
+                    const end = face.bottomRight;
+                    
+                    const centerX = (start[0] + end[0]) / 2;
+                    const videoWidth = videoElement.videoWidth || 320;
+                    const errorX = centerX - (videoWidth / 2);
+
+                    // Margen de tolerancia para centrado (evita vibraciones)
+                    if (errorX > 45) {
+                        enviarAccion('girar_derecha');
+                    } else if (errorX < -45) {
+                        enviarAccion('girar_izquierda');
+                    } else {
+                        enviarAccion('centrado_x');
+                    }
+                } else {
+                    // Si pierde de vista el rostro, detener motores
+                    enviarAccion('detener_robot');
+                }
+            } catch (e) {}
+
+            // Escanear fotogramas continuamente cada 150ms
+            if (modoSeguimientoActivo) {
+                setTimeout(bucleSeguimientoFacial, 150);
+            }
         }
 
         function aplicarRotacionInteligente(cajaContenedor, clavePosicion) {
@@ -376,28 +471,19 @@
             }
         }
 
-        /* Sistema de rotaciÃ³n armÃ³nica de tonos (gama fucsia, morado, lila, celeste) */
         let cicloColor = 0;
         function actualizarColoresArmonicos() {
             if (!modoRelojActivo) return;
-            cicloColor += 0.8; // Velocidad suave de transiciÃ³n cromÃ¡tica
-
-            // Generamos tonos armÃ³nicos cercanos usando senos desfasados en el cÃ­rculo cromÃ¡tico (rango 270Â° a 330Â° / rosados-morados y acentos celestes)
-            let colorH1 = `hsl(${290 + Math.sin(cicloColor * 0.05) * 35}, 90%, 70%)`;
-            let colorH2 = `hsl(${315 + Math.cos(cicloColor * 0.06) * 30}, 95%, 68%)`;
-            let colorM1 = `hsl(${260 + Math.sin(cicloColor * 0.04 + 1) * 40}, 85%, 72%)`;
-            let colorM2 = `hsl(${335 + Math.cos(cicloColor * 0.05 + 2) * 35}, 90%, 65%)`;
-
-            h1El.style.color = colorH1;
-            h2El.style.color = colorH2;
-            m1El.style.color = colorM1;
-            m2El.style.color = colorM2;
+            cicloColor += 0.8;
+            h1El.style.color = `hsl(${290 + Math.sin(cicloColor * 0.05) * 35}, 90%, 70%)`;
+            h2El.style.color = `hsl(${315 + Math.cos(cicloColor * 0.06) * 30}, 95%, 68%)`;
+            m1El.style.color = `hsl(${260 + Math.sin(cicloColor * 0.04 + 1) * 40}, 85%, 72%)`;
+            m2El.style.color = `hsl(${335 + Math.cos(cicloColor * 0.05 + 2) * 35}, 90%, 65%)`;
         }
 
         function actualizarHoraReloj() {
             if (!modoRelojActivo) return;
             const now = new Date();
-            
             let hours = (now.getHours() % 12 || 12).toString().padStart(2, '0');
             let minutes = now.getMinutes().toString().padStart(2, '0');
 
@@ -407,11 +493,11 @@
             actualizarDigitoConRotacion(m2El, boxM2, 'm2', minutes[1]);
 
             actualizarColoresArmonicos();
-
             setTimeout(actualizarHoraReloj, 1000);
         }
 
         function registrarInteraccion() {
+            if (modoSeguimientoActivo) return; // No interrumpir si el seguimiento estÃ¡ encendido
             activarPantallaCompleta();
             solicitarWakeLock();
 
