@@ -3,14 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - Test de Motores y CÃ¡mara</title>
+    <title>Edy - Test Dedicado de Motores</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
-
     <style>
         body, html {
             margin: 0;
@@ -64,69 +58,7 @@
             z-index: 100;
         }
 
-        #debug-panel {
-            position: absolute;
-            left: 14px;
-            top: 14px;
-            background-color: rgba(0, 0, 0, 0.85);
-            border: 1px solid #ff69b4;
-            color: #d1f7ff;
-            padding: 10px 14px;
-            font-size: 12px;
-            font-family: monospace;
-            border-radius: 8px;
-            z-index: 100;
-            display: none;
-            pointer-events: none;
-            line-height: 1.4;
-        }
-
-        /* Panel de control de testing para los motores (esquina superior derecha) */
-        #test-motors-panel {
-            position: absolute;
-            right: 14px;
-            top: 14px;
-            background-color: rgba(0, 0, 0, 0.85);
-            border: 1px solid #00ffff;
-            color: #d1f7ff;
-            padding: 10px;
-            border-radius: 10px;
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .motor-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            font-size: 11px;
-            font-family: monospace;
-        }
-
-        .motor-btns {
-            display: flex;
-            gap: 5px;
-        }
-
-        .btn-motor {
-            background-color: rgba(0, 255, 255, 0.2);
-            color: #00ffff;
-            border: 1px solid #00ffff;
-            padding: 6px 10px;
-            font-size: 11px;
-            font-weight: 700;
-            border-radius: 6px;
-            cursor: pointer;
-            outline: none;
-        }
-
-        .btn-motor:active {
-            background-color: #00ffff;
-            color: #000;
-        }
-
+        /* Botones en la esquina inferior derecha */
         .controls-corner {
             position: absolute;
             right: 14px;
@@ -140,8 +72,8 @@
             background-color: rgba(255, 105, 180, 0.2);
             color: #ff69b4;
             border: 1px solid #ff69b4;
-            padding: 6px 14px;
-            font-size: 12px;
+            padding: 8px 16px;
+            font-size: 13px;
             font-weight: 700;
             border-radius: 15px;
             cursor: pointer;
@@ -153,37 +85,72 @@
             color: #000;
         }
 
-        /* Contenedor de la cÃ¡mara corregido con rotaciÃ³n compensada de 90 grados para horizontal */
-        #camera-container {
+        /* Panel central de Test de Movimiento */
+        #test-panel {
             position: absolute;
             display: none;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            width: 100vh;
-            height: 100vw;
-            transform: rotate(90deg);
-            z-index: 40;
-            background-color: #000;
-        }
-
-        #webcam {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
+            background-color: #000000;
+            z-index: 80;
+            gap: 25px;
         }
 
-        #deadzone-box {
-            position: absolute;
-            width: 120px;
-            height: 100%;
-            border-left: 2px dashed rgba(255, 105, 180, 0.5);
-            border-right: 2px dashed rgba(255, 105, 180, 0.5);
-            pointer-events: none;
-            display: none;
-            z-index: 45;
+        .test-title {
+            color: #00ffff;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            margin-bottom: 5px;
         }
 
+        .motor-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            padding: 15px 25px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .motor-card span {
+            color: #d1f7ff;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .motor-buttons-row {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn-test {
+            flex: 1;
+            background-color: #00ffff;
+            color: #000;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 800;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .btn-test:active {
+            background-color: #ff69b4;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.5);
+        }
+
+        /* Rostro horizontal de Edy */
         .face-container {
             display: flex;
             justify-content: center;
@@ -219,6 +186,7 @@
             93% { transform: scaleY(0.06); }
         }
 
+        /* Reloj iOS */
         #clock-container {
             position: absolute;
             display: none;
@@ -252,13 +220,7 @@
             transform: scaleX(0.92);
         }
 
-        .hours-container {
-            display: flex;
-            align-items: center;
-            justify-self: end;
-            margin-right: 3vh;
-        }
-
+        .hours-container { display: flex; align-items: center; justify-self: end; margin-right: 3vh; }
         #h1 { z-index: 1; } 
         #h2 { margin-left: -5vh; z-index: 2; } 
         
@@ -283,17 +245,10 @@
             border-radius: 50%;
             animation: pulseDot 2s infinite ease-in-out;
         }
-
         .dot:nth-child(1) { top: -24vw; }
         .dot:nth-child(2) { top: 13vw; }
 
-        .minutes-container {
-            display: flex;
-            align-items: center;
-            justify-self: start;
-            margin-left: 3vh;
-        }
-
+        .minutes-container { display: flex; align-items: center; justify-self: start; margin-left: 3vh; }
         #m1 { z-index: 1; } 
         #m2 { margin-left: -5vh; z-index: 2; } 
 
@@ -313,41 +268,52 @@
 
     <div id="status">Desconectado</div>
 
-    <div id="debug-panel">
-        Estado: <span id="debug-estado">Inactivo</span><br>
-        Comando: <span id="debug-cmd">---</span><br>
-        Servo Izq: <span id="servo-izq">Detenido (90Â°)</span><br>
-        Servo Der: <span id="servo-der">Detenido (90Â°)</span>
-    </div>
-
-    <!-- Panel de Testeo Manual de Motores -->
-    <div id="test-motors-panel">
-        <div class="motor-group">
-            <span>Rueda Izquierda (Pin 13)</span>
-            <div class="motor-btns">
-                <button class="btn-motor" onmousedown="enviarAccion('test_izq_avanzar')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_izq_avanzar')" ontouchend="enviarAccion('detener_robot')">â¬…ï¸ Avanzar</button>
-                <button class="btn-motor" onmousedown="enviarAccion('test_izq_retroceder')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_izq_retroceder')" ontouchend="enviarAccion('detener_robot')">Retroceder âž¡ï¸</button>
-            </div>
-        </div>
-        <div class="motor-group">
-            <span>Rueda Derecha (Pin 12)</span>
-            <div class="motor-btns">
-                <button class="btn-motor" onmousedown="enviarAccion('test_der_avanzar')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_der_avanzar')" ontouchend="enviarAccion('detener_robot')">â¬…ï¸ Avanzar</button>
-                <button class="btn-motor" onmousedown="enviarAccion('test_der_retroceder')" onmouseup="enviarAccion('detener_robot')" onttouchstart="enviarAccion('test_der_retroceder')" ontouchend="enviarAccion('detener_robot')">Retroceder âž¡ï¸</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Botones de Acceso en Esquina -->
     <div class="controls-corner">
-        <button class="btn-accion" id="btn-seguimiento" onclick="event.stopPropagation(); toggleModoSeguimiento();">Seguimiento</button>
+        <button class="btn-accion" id="btn-test" onclick="event.stopPropagation(); toggleTestMovimiento();">Test Movimiento</button>
         <button class="btn-accion" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
     </div>
 
-    <div id="camera-container">
-        <div id="deadzone-box"></div>
-        <video id="webcam" autoplay playsinline></video>
+    <!-- Panel Dedicado de Test de Motores -->
+    <div id="test-panel" onclick="event.stopPropagation()">
+        <div class="test-title">âš™ï¸ Test de Servomotores</div>
+        
+        <!-- Servo Izquierdo (Pin 13) -->
+        <div class="motor-card">
+            <span>Servo Izquierdo (Pin 13)</span>
+            <div class="motor-buttons-row">
+                <button class="btn-test" 
+                    ontouchstart="enviarAccion('test_izq_horario'); event.preventDefault();" 
+                    onmousedown="enviarAccion('test_izq_horario')" 
+                    ontouchend="enviarAccion('detener_robot')" 
+                    onmouseup="enviarAccion('detener_robot')">Girar Sentido A</button>
+                <button class="btn-test" 
+                    ontouchstart="enviarAccion('test_izq_antihorario'); event.preventDefault();" 
+                    onmousedown="enviarAccion('test_izq_antihorario')" 
+                    ontouchend="enviarAccion('detener_robot')" 
+                    onmouseup="enviarAccion('detener_robot')">Girar Sentido B</button>
+            </div>
+        </div>
+
+        <!-- Servo Derecho (Pin 12) -->
+        <div class="motor-card">
+            <span>Servo Derecho (Pin 12)</span>
+            <div class="motor-buttons-row">
+                <button class="btn-test" 
+                    ontouchstart="enviarAccion('test_der_horario'); event.preventDefault();" 
+                    onmousedown="enviarAccion('test_der_horario')" 
+                    ontouchend="enviarAccion('detener_robot')" 
+                    onmouseup="enviarAccion('detener_robot')">Girar Sentido A</button>
+                <button class="btn-test" 
+                    ontouchstart="enviarAccion('test_der_antihorario'); event.preventDefault();" 
+                    onmousedown="enviarAccion('test_der_antihorario')" 
+                    ontouchend="enviarAccion('detener_robot')" 
+                    onmouseup="enviarAccion('detener_robot')">Girar Sentido B</button>
+            </div>
+        </div>
     </div>
 
+    <!-- Rostro horizontal -->
     <div class="face-container" id="face" onclick="registrarInteraccion()">
         <div class="eyes-row" id="eyes-row">
             <div class="eye"></div>
@@ -355,6 +321,7 @@
         </div>
     </div>
 
+    <!-- Reloj -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="ios-clock">
             <div class="hours-container">
@@ -378,16 +345,8 @@
         const eyesRow = document.getElementById('eyes-row');
         const faceContainer = document.getElementById('face');
         const clockContainer = document.getElementById('clock-container');
-        const cameraContainer = document.getElementById('camera-container');
-        const deadzoneBox = document.getElementById('deadzone-box');
-        const testMotorsPanel = document.getElementById('test-motors-panel');
-        const btnSeguimiento = document.getElementById('btn-seguimiento');
-        const videoElement = document.getElementById('webcam');
-        const debugEstado = document.getElementById('debug-estado');
-        const debugCmd = document.getElementById('debug-cmd');
-        const debugPanel = document.getElementById('debug-panel');
-        const servoIzqText = document.getElementById('servo-izq');
-        const servoDerText = document.getElementById('servo-der');
+        const testPanel = document.getElementById('test-panel');
+        const btnTest = document.getElementById('btn-test');
         
         const h1El = document.getElementById('h1');
         const h2El = document.getElementById('h2');
@@ -409,17 +368,14 @@
         let temporizadorEsquina = null;
         let modoCuriosoActivo = false;
         let modoRelojActivo = false;
-        let modoSeguimientoActivo = false;
-        let aiModel = null;
+        let modoTestActivo = false;
         let wakeLock = null;
 
         const ultimasRotaciones = { h1: null, h2: null, m1: null, m2: null };
 
         async function solicitarWakeLock() {
             if ('wakeLock' in navigator) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                } catch (err) {}
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
             }
         }
 
@@ -433,31 +389,7 @@
             });
         }
 
-        function actualizarInfoServos(accion) {
-            if (accion === "girar_derecha") {
-                servoIzqText.textContent = "Avanzando (180Â°)";
-                servoDerText.textContent = "Retrocediendo (0Â°)";
-            } else if (accion === "girar_izquierda") {
-                servoIzqText.textContent = "Retrocediendo (0Â°)";
-                servoDerText.textContent = "Avanzando (180Â°)";
-            } else if (accion === "test_izq_avanzar") {
-                servoIzqText.textContent = "Test Avanzar (180Â°)";
-            } else if (accion === "test_izq_retroceder") {
-                servoIzqText.textContent = "Test Retroceder (0Â°)";
-            } else if (accion === "test_der_avanzar") {
-                servoDerText.textContent = "Test Avanzar (0Â°)";
-            } else if (accion === "test_der_retroceder") {
-                servoDerText.textContent = "Test Retroceder (180Â°)";
-            } else {
-                servoIzqText.textContent = "Detenido (90Â°)";
-                servoDerText.textContent = "Detenido (90Â°)";
-            }
-        }
-
         async function enviarAccion(tipo) {
-            debugCmd.textContent = tipo;
-            actualizarInfoServos(tipo);
-
             if (mqttConectado && mqttClient) { 
                 mqttClient.publish(MQTT_ACTION_TOPIC, tipo); 
                 return; 
@@ -480,14 +412,14 @@
         ];
 
         function iniciarModoCurioso() {
-            if (modoRelojActivo || modoSeguimientoActivo) return;
+            if (modoRelojActivo || modoTestActivo) return;
             modoCuriosoActivo = true;
             statusEl.textContent = 'Edy curioso...';
             bucleCurioso();
         }
 
         function bucleCurioso() {
-            if (!modoCuriosoActivo || modoRelojActivo || modoSeguimientoActivo) return;
+            if (!modoCuriosoActivo || modoRelojActivo || modoTestActivo) return;
             let proximoIndex = Math.floor(Math.random() * 4) + 1;
             let destino = posiciones[proximoIndex];
 
@@ -499,16 +431,13 @@
         }
 
         function iniciarModoReloj() {
-            if (modoSeguimientoActivo) return;
+            if (modoTestActivo) return;
             modoCuriosoActivo = false;
             clearTimeout(temporizadorEsquina);
             modoRelojActivo = true;
 
             faceContainer.style.display = 'none';
-            cameraContainer.style.display = 'none';
-            deadzoneBox.style.display = 'none';
-            debugPanel.style.display = 'none';
-            testMotorsPanel.style.display = 'none';
+            testPanel.style.display = 'none';
             clockContainer.style.display = 'flex';
             statusEl.textContent = 'Modo Reloj';
 
@@ -517,21 +446,18 @@
         }
 
         function forzarModoRelojManual() {
-            if (modoSeguimientoActivo) toggleModoSeguimiento();
+            if (modoTestActivo) toggleTestMovimiento();
             clearTimeout(timerInactividad30s);
             clearTimeout(timerReloj1min);
             iniciarModoReloj();
         }
 
-        async function toggleModoSeguimiento() {
-            modoSeguimientoActivo = !modoSeguimientoActivo;
+        function toggleTestMovimiento() {
+            modoTestActivo = !modoTestActivo;
 
-            if (modoSeguimientoActivo) {
-                btnSeguimiento.classList.add('activo');
-                statusEl.textContent = 'Iniciando cÃ¡mara...';
-                debugPanel.style.display = 'block';
-                testMotorsPanel.style.display = 'flex'; // Muestra los botones de testing de motores
-                debugEstado.textContent = 'Cargando IA...';
+            if (modoTestActivo) {
+                btnTest.classList.add('activo');
+                statusEl.textContent = 'Modo Test Activo';
 
                 modoRelojActivo = false;
                 modoCuriosoActivo = false;
@@ -541,81 +467,14 @@
 
                 clockContainer.style.display = 'none';
                 faceContainer.style.display = 'none';
-                cameraContainer.style.display = 'flex';
-                deadzoneBox.style.display = 'block';
-
-                if (!aiModel) {
-                    try {
-                        aiModel = await blazeface.load();
-                        const stream = await navigator.mediaDevices.getUserMedia({
-                            video: { facingMode: "user", width: 640, height: 480 }
-                        });
-                        videoElement.srcObject = stream;
-                        await new Promise((resolve) => { videoElement.onloadedmetadata = () => { resolve(); }; });
-                    } catch (err) {
-                        statusEl.textContent = 'Error de cÃ¡mara';
-                        debugEstado.textContent = 'Error';
-                        modoSeguimientoActivo = false;
-                        btnSeguimiento.classList.remove('activo');
-                        cameraContainer.style.display = 'none';
-                        deadzoneBox.style.display = 'none';
-                        testMotorsPanel.style.display = 'none';
-                        faceContainer.style.display = 'flex';
-                        return;
-                    }
-                }
-                statusEl.textContent = 'Monitoreando rostro...';
-                bucleSeguimientoFacial();
-
+                testPanel.style.display = 'flex';
             } else {
-                btnSeguimiento.classList.remove('activo');
-                statusEl.textContent = 'Seguimiento desactivado';
-                debugPanel.style.display = 'none';
-                testMotorsPanel.style.display = 'none';
-                cameraContainer.style.display = 'none';
-                deadzoneBox.style.display = 'none';
+                btnTest.classList.remove('activo');
+                statusEl.textContent = 'Test finalizado';
+                testPanel.style.display = 'none';
                 faceContainer.style.display = 'flex';
                 enviarAccion('detener_robot');
                 registrarInteraccion();
-            }
-        }
-
-        async function bucleSeguimientoFacial() {
-            if (!modoSeguimientoActivo || !aiModel) return;
-
-            try {
-                const predictions = await aiModel.estimateFaces(videoElement, false);
-
-                if (predictions.length > 0) {
-                    const face = predictions[0];
-                    const start = face.topLeft;
-                    const end = face.bottomRight;
-                    
-                    const centerX = (start[0] + end[0]) / 2;
-                    const videoWidth = videoElement.videoWidth || 640;
-                    const errorX = centerX - (videoWidth / 2);
-
-                    debugEstado.textContent = `Rostro detectado (X: ${Math.round(errorX)})`;
-
-                    const umbralTolerancia = 90;
-
-                    if (errorX > umbralTolerancia) {
-                        enviarAccion('girar_derecha');
-                    } else if (errorX < -umbralTolerancia) {
-                        enviarAccion('girar_izquierda');
-                    } else {
-                        enviarAccion('centrado_x');
-                    }
-                } else {
-                    debugEstado.textContent = 'Buscando rostro...';
-                    enviarAccion('detener_robot');
-                }
-            } catch (e) {
-                debugEstado.textContent = 'Error en anÃ¡lisis';
-            }
-
-            if (modoSeguimientoActivo) {
-                setTimeout(bucleSeguimientoFacial, 150);
             }
         }
 
@@ -662,7 +521,7 @@
         }
 
         function registrarInteraccion() {
-            if (modoSeguimientoActivo) return; 
+            if (modoTestActivo) return; 
             activarPantallaCompleta();
             solicitarWakeLock();
 
@@ -672,9 +531,7 @@
                 clearTimeout(temporizadorEsquina);
 
                 clockContainer.style.display = 'none';
-                cameraContainer.style.display = 'none';
-                deadzoneBox.style.display = 'none';
-                testMotorsPanel.style.display = 'none';
+                testPanel.style.display = 'none';
                 faceContainer.style.display = 'flex';
                 eyesRow.style.transform = 'translate(0px, 0px)';
                 
