@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edy - Monitor de Seguimiento Rotado</title>
+    <title>Edy - Seguimiento con Zona Muerta</title>
     <!-- Importamos la fuente Fredoka redondeada -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     
@@ -66,7 +66,6 @@
             z-index: 100;
         }
 
-        /* Panel de depuraciÃ³n visual ampliado para mostrar los servos */
         #debug-panel {
             position: absolute;
             left: 14px;
@@ -84,7 +83,6 @@
             line-height: 1.4;
         }
 
-        /* Controles en esquina inferior derecha */
         .controls-corner {
             position: absolute;
             right: 14px;
@@ -111,15 +109,14 @@
             color: #000;
         }
 
-        /* Contenedor de la cÃ¡mara rotado a 90 grados para que encaje horizontalmente */
+        /* Contenedor de la cÃ¡mara corregido a orientaciÃ³n horizontal natural */
         #camera-container {
             position: absolute;
             display: none;
             justify-content: center;
             align-items: center;
-            width: 100vh;
-            height: 100vw;
-            transform: rotate(90deg);
+            width: 100vw;
+            height: 100vh;
             z-index: 40;
             background-color: #000;
         }
@@ -128,9 +125,21 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transform: scaleX(-1); /* Espejo para que sea natural al verte */
         }
 
-        /* Rostro horizontal */
+        /* Indicador visual de la zona muerta central en pantalla */
+        #deadzone-box {
+            position: absolute;
+            width: 120px;
+            height: 100%;
+            border-left: 2px dashed rgba(255, 105, 180, 0.5);
+            border-right: 2px dashed rgba(255, 105, 180, 0.5);
+            pointer-events: none;
+            display: none;
+            z-index: 45;
+        }
+
         .face-container {
             display: flex;
             justify-content: center;
@@ -166,7 +175,6 @@
             93% { transform: scaleY(0.06); }
         }
 
-        /* --- RELOJ iOS --- */
         #clock-container {
             position: absolute;
             display: none;
@@ -261,7 +269,7 @@
 
     <div id="status">Desconectado</div>
 
-    <!-- Panel de depuraciÃ³n en vivo indicando estado, comando y servo activo -->
+    <!-- Panel de depuraciÃ³n -->
     <div id="debug-panel">
         Estado: <span id="debug-estado">Inactivo</span><br>
         Comando: <span id="debug-cmd">---</span><br>
@@ -269,18 +277,17 @@
         Servo Der: <span id="servo-der">Detenido (90Â°)</span>
     </div>
 
-    <!-- Botones rÃ¡pidos -->
     <div class="controls-corner">
         <button class="btn-accion" id="btn-seguimiento" onclick="event.stopPropagation(); toggleModoSeguimiento();">Seguimiento</button>
         <button class="btn-accion" onclick="event.stopPropagation(); forzarModoRelojManual();">Reloj</button>
     </div>
 
-    <!-- Contenedor de la cÃ¡mara rotado horizontalmente -->
+    <!-- CÃ¡mara y zona muerta -->
     <div id="camera-container">
+        <div id="deadzone-box"></div>
         <video id="webcam" autoplay playsinline></video>
     </div>
 
-    <!-- Rostro horizontal -->
     <div class="face-container" id="face" onclick="registrarInteraccion()">
         <div class="eyes-row" id="eyes-row">
             <div class="eye"></div>
@@ -288,7 +295,6 @@
         </div>
     </div>
 
-    <!-- Pantalla de Reloj -->
     <div id="clock-container" onclick="registrarInteraccion()">
         <div class="ios-clock">
             <div class="hours-container">
@@ -313,6 +319,7 @@
         const faceContainer = document.getElementById('face');
         const clockContainer = document.getElementById('clock-container');
         const cameraContainer = document.getElementById('camera-container');
+        const deadzoneBox = document.getElementById('deadzone-box');
         const btnSeguimiento = document.getElementById('btn-seguimiento');
         const videoElement = document.getElementById('webcam');
         const debugEstado = document.getElementById('debug-estado');
@@ -430,6 +437,7 @@
 
             faceContainer.style.display = 'none';
             cameraContainer.style.display = 'none';
+            deadzoneBox.style.display = 'none';
             debugPanel.style.display = 'none';
             clockContainer.style.display = 'flex';
             statusEl.textContent = 'Modo Reloj';
@@ -462,13 +470,14 @@
 
                 clockContainer.style.display = 'none';
                 faceContainer.style.display = 'none';
-                cameraContainer.style.display = 'flex'; // Muestra la cÃ¡mara rotada correctamente
+                cameraContainer.style.display = 'flex';
+                deadzoneBox.style.display = 'block'; // Muestra el cuadro de tolerancia central
 
                 if (!aiModel) {
                     try {
                         aiModel = await blazeface.load();
                         const stream = await navigator.mediaDevices.getUserMedia({
-                            video: { facingMode: "user", width: 320, height: 240 }
+                            video: { facingMode: "user", width: 640, height: 480 }
                         });
                         videoElement.srcObject = stream;
                         await new Promise((resolve) => { videoElement.onloadedmetadata = () => { resolve(); }; });
@@ -478,6 +487,7 @@
                         modoSeguimientoActivo = false;
                         btnSeguimiento.classList.remove('activo');
                         cameraContainer.style.display = 'none';
+                        deadzoneBox.style.display = 'none';
                         faceContainer.style.display = 'flex';
                         return;
                     }
@@ -490,6 +500,7 @@
                 statusEl.textContent = 'Seguimiento desactivado';
                 debugPanel.style.display = 'none';
                 cameraContainer.style.display = 'none';
+                deadzoneBox.style.display = 'none';
                 faceContainer.style.display = 'flex';
                 enviarAccion('detener_robot');
                 registrarInteraccion();
@@ -508,14 +519,18 @@
                     const end = face.bottomRight;
                     
                     const centerX = (start[0] + end[0]) / 2;
-                    const videoWidth = videoElement.videoWidth || 320;
+                    const videoWidth = videoElement.videoWidth || 640;
                     const errorX = centerX - (videoWidth / 2);
 
                     debugEstado.textContent = `Rostro detectado (X: ${Math.round(errorX)})`;
 
-                    if (errorX > 45) {
+                    // --- ZONA MUERTA (DEADZONE) ---
+                    // Si el rostro estÃ¡ dentro de un margen central de +/- 90 pÃ­xeles, el robot no se mueve (evita movimientos bruscos)
+                    const umbralTolerancia = 90;
+
+                    if (errorX > umbralTolerancia) {
                         enviarAccion('girar_derecha');
-                    } else if (errorX < -45) {
+                    } else if (errorX < -umbralTolerancia) {
                         enviarAccion('girar_izquierda');
                     } else {
                         enviarAccion('centrado_x');
@@ -587,6 +602,7 @@
 
                 clockContainer.style.display = 'none';
                 cameraContainer.style.display = 'none';
+                deadzoneBox.style.display = 'none';
                 faceContainer.style.display = 'flex';
                 eyesRow.style.transform = 'translate(0px, 0px)';
                 
